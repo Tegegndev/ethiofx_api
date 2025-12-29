@@ -350,6 +350,86 @@ def scrape_coop_exchange_rates():
         return {"error": f"Scraper Exception: {str(e)}"}
 
 
+def fetch_dashen_exchange_rates():
+    url = 'https://dashenbanksc.com/daily-exchange-rates/'
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Referer': 'https://www.google.com/',
+        'Upgrade-Insecure-Requests': '1'
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=20)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Find the specific tab content containing the table
+        # Based on your HTML snippet, it's inside .et_pb_tab_content
+        content_div = soup.find('div', class_='et_pb_tab_content')
+        if not content_div:
+            return json.dumps({"error": "Could not find tab content"}, indent=2)
+
+        table = content_div.find('table')
+        if not table:
+            return json.dumps({"error": "Could not find exchange rate table"}, indent=2)
+
+        rows = table.find('tbody').find_all('tr')
+        
+        # Result dictionary
+        formatted_rates = {}
+
+        for row in rows:
+            cols = row.find_all('td')
+            
+            # Skip empty rows or rows that don't look like data
+            if len(cols) < 4:
+                continue
+
+            # Check if it's the header row
+            first_col_text = cols[0].get_text(strip=True).lower()
+            if 'currency code' in first_col_text:
+                continue
+
+            try:
+                # Extract and clean data
+                # Col 0: Currency Code (e.g., "USD")
+                code = cols[0].get_text(strip=True).upper()
+                
+                # Col 1: Currency Name
+                name = cols[1].get_text(strip=True).upper() # Requested format has uppercase names
+                
+                # Col 2: Cash Buying
+                buying_str = cols[2].get_text(strip=True).replace(',', '')
+                buying = float(buying_str)
+                
+                # Col 3: Cash Selling
+                selling_str = cols[3].get_text(strip=True).replace(',', '')
+                selling = float(selling_str)
+
+                # Add to dictionary using Code as key
+                formatted_rates[code] = {
+                    "buying": buying,
+                    "currency_code": code,
+                    "name": name,
+                    "selling": selling
+                }
+
+            except (ValueError, IndexError):
+                # Skip rows that fail to parse (e.g. malformed numbers)
+                continue
+
+        return json.dumps(formatted_rates, indent=2)
+
+    except Exception as e:
+        return json.dumps({"error": f"Scraper error: {str(e)}"}, indent=2)
+
+@app.route('/dashen-exchange-rates', methods=['GET'])
+def get_dashen_exchange_rates():
+    result = fetch_dashen_exchange_rates()
+    return jsonify(json.loads(result))
+
 @app.route('/boa-exchange-rates', methods=['GET'])
 def get_boa_exchange_rates():
     result = scrape_boa_exchange_rates()
