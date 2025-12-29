@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from bs4 import BeautifulSoup
 from datetime import timezone
+import re
 from flask import Flask, jsonify
 
 
@@ -205,6 +206,150 @@ def scrape_boa_exchange_rates():
     except Exception as e:
         return {"error": f"Scraper failed: {str(e)}"}
 
+def scrape_coop_exchange_rates():
+    url = 'https://coopbankoromia.com.et/daily-exchange-rates/'
+    
+    # Headers to mimic a real browser
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Referer': 'https://www.google.com/',
+    }
+
+    print(f"DEBUG: Fetching {url}...")
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=20)
+        print(f"DEBUG: Status Code: {response.status_code}")
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # --- STRATEGY 1: TRY JAVASCRIPT VARIABLE ---
+        print("DEBUG: Attempting to find 'var exchangeRates' in script tags...")
+        json_data = None
+        
+        # Use .text instead of .string for better safety
+        scripts = soup.find_all('script')
+        for i, script in enumerate(scripts):
+            if script.text and 'exchangeRates =' in script.text:
+                print(f"DEBUG: Found 'exchangeRates' in script #{i}")
+                # Relaxed regex: allows whitespace, looks for JSON object, optional semicolon
+                match = re.search(r'exchangeRates\s*=\s*(\{.*?\})(?:;|\s*$)', script.text, re.DOTALL)
+                if match:
+                    try:
+                        json_str = match.group(1)
+                        json_data = json.loads(json_str)
+                        print("DEBUG: Successfully parsed JSON from script.")
+                        break
+                    except json.JSONDecodeError as e:
+                        print(f"DEBUG: JSON decode error: {e}")
+        
+        # --- STRATEGY 2: FALLBACK TO HTML TABLE ---
+        if not json_data:
+            print("DEBUG: Script strategy failed. Switching to HTML table scraping...")
+            table = soup.find('table', id='exchange-rates-table')
+            if table:
+                json_data = {}
+                rows = table.find('tbody').find_all('tr')
+                for row in rows:
+                    cols = row.find_all('td')
+                    if len(cols) >= 5:
+                        # Col 0: Currency Name/Img ("USD - US Dollar")
+                        curr_text = cols[0].get_text(strip=True)
+                        # Extract Code (e.g., "USD")
+                        code_match = re.search(r'^([A-Z]{3})', curr_text)
+                        if code_match:
+                            code = code_match.group(1)
+                            name = curr_text.replace(code, '').strip(' -')
+                            
+                            json_data[code] = {
+                                "buying": cols[1].get_text(strip=True),
+                                "selling": cols[2].get_text(strip=True),
+                                "transaction_buying": cols[3].get_text(strip=True),
+                                "transaction_selling": cols[4].get_text(strip=True),
+                                "name": name
+                            }
+                if json_data:
+                    print(f"DEBUG: Scraped {len(json_data)} currencies from table.")
+            else:
+                print("DEBUG: Could not find table with id 'exchange-rates-table'")
+
+        if not json_data:
+            return {"error": "Failed to extract data via Script OR Table strategies."}
+
+        # --- DATA PROCESSING ---
+        print("DEBUG: Formatting data to CBE structure...")
+        
+        # Date Extraction
+        formatted_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        header_h4 = soup.find('div', class_='exchange-rates-header')
+        if header_h4:
+            date_span = header_h4.find('span')
+            if date_span:
+                try:
+                    raw_date = date_span.get_text(strip=True)
+                    formatted_date = datetime.strptime(raw_date, "%B %d, %Y").strftime("%Y-%m-%d")
+                except:
+                    pass
+
+        # Mapping names
+        name_map = {
+            "USD": "US DOLLAR", "GBP": "POUND STERLING", "EUR": "EURO",
+            "AED": "UAE DIRHAM", "SAR": "SAUDI RIYAL", "CNY": "CHINESE YUAN"
+        }
+
+        exchange_rates_list = []
+        for code, data in json_data.items():
+            norm_name = name_map.get(code, data.get('name', code).upper())
+            
+            try:
+                rate_entry = {
+                    "__component": "exchange-rate.exchange-rate",
+                    "cashBuying": float(data.get('buying', 0)),
+                    "cashSelling": float(data.get('selling', 0)),
+                    "transactionalBuying": float(data.get('transaction_buying', 0)),
+                    "transactionalSelling": float(data.get('transaction_selling', 0)),
+                    "_id": f"coop_rate_{code.lower()}",
+                    "weightedAverageBuying": None,
+                    "weightedAverageSelling": None,
+                    "__v": 0,
+                    "currency": {
+                        "show_on_home": True,
+                        "_id": f"coop_curr_{code.lower()}",
+                        "CurrencyCode": code,
+                        "CurrencyName": norm_name,
+                        "id": f"coop_curr_{code.lower()}"
+                    },
+                    "id": f"coop_rate_{code.lower()}"
+                }
+                exchange_rates_list.append(rate_entry)
+            except ValueError:
+                print(f"DEBUG: Skipping {code} due to float conversion error")
+                continue
+
+        # 3. Construct cleaned rates dict
+        cleaned_rates = {}
+        for rate in exchange_rates_list:
+            currency = rate['currency']
+            code = currency['CurrencyCode']
+            name = currency['CurrencyName']
+            buying = rate['cashBuying']
+            selling = rate['cashSelling']
+            cleaned_rates[code] = {
+                'currency_code': code,
+                'name': name,
+                'buying': buying,
+                'selling': selling
+            }
+        return cleaned_rates
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"error": f"Scraper Exception: {str(e)}"}
+
+
 @app.route('/boa-exchange-rates', methods=['GET'])
 def get_boa_exchange_rates():
     result = scrape_boa_exchange_rates()
@@ -215,9 +360,14 @@ def get_cbe_exchange_rates():
     result = fetch_cbe_exchange_rates()
     return jsonify(result)
 
+@app.route('/coop-exchange-rates', methods=['GET'])
+def get_coop_exchange_rates():
+    result = scrape_coop_exchange_rates()
+    return jsonify(result)
+
 @app.route('/')
 def index():
-    return "Welcome to the Exchange Rate API! Use /cbe-exchange-rates or /boa-exchange-rates to get data."
+    return "Welcome to the Exchange Rate API! Use /cbe-exchange-rates or /boa-exchange-rates /coop to get data."
 
 if __name__ == "__main__":
     # You can pass a specific date or leave it empty for today
