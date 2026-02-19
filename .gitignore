@@ -1,3 +1,4 @@
-__pycache__
-coop.py
-dashen.py
+```
+__pycache__/
+*.pyc
+```

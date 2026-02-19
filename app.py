@@ -86,8 +86,13 @@ def fetch_cbe_exchange_rates(target_date=None):
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data: {e}")
+        return None
     except (KeyError, IndexError) as e:
         print(f"Error parsing JSON structure: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return None
 
 def scrape_boa_exchange_rates():
     url = 'https://www.bankofabyssinia.com/exchange-rate-2/'
