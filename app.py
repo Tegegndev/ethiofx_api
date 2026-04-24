@@ -76,6 +76,8 @@ def fetch_cbe_exchange_rates(target_date=None):
             cleaned_rates[code] = {
                 'currency_code': code,
               
+
+              
                 'name': name,
                 'buying': buying,
                 'selling': selling
