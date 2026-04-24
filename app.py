@@ -449,7 +449,16 @@ def get_coop_exchange_rates():
 
 @app.route('/')
 def index():
-    return "Welcome to the Exchange Rate API! Use /cbe-exchange-rates or /boa-exchange-rates /coop to get data."
+    return """
+    <h1>Welcome to the Ethiopian Bank Exchange Rates API</h1>
+    <p>Available endpoints:</p>
+    <ul>
+        <li><a href="/cbe-exchange-rates">/cbe-exchange-rates</a> - Fetches exchange rates from CBE API</li>
+        <li><a href="/boa-exchange-rates">/boa-exchange-rates</a> - Scrapes exchange rates from Bank of Abyssinia</li>
+        <li><a href="/coop-exchange-rates">/coop-exchange-rates</a> - Scrapes exchange rates from Cooperative Bank of Oromia</li>
+        <li><a href="/dashen-exchange-rates">/dashen-exchange-rates</a> - Scrapes exchange rates from Dashen Bank</li>
+    </ul>
+    """, 200
 
 if __name__ == "__main__":
     # You can pass a specific date or leave it empty for today
