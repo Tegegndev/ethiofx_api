@@ -6,6 +6,12 @@ from datetime import timezone
 import re
 from flask import Flask, jsonify
 
+from banks.awash import get_awash_rates
+from banks.hibret import scrape_hibret_exchange_rates
+from banks.nib import scrape_nib_rates
+from banks.nib import scrape_nib_rates
+from banks.wegagen import get_wegagen_rates
+
 
 app = Flask(__name__)
 
@@ -447,6 +453,27 @@ def get_coop_exchange_rates():
     result = scrape_coop_exchange_rates()
     return jsonify(result)
 
+@app.route('/hibret-exchange-rates', methods=['GET'])
+def get_hibret_exchange_rates():
+    result = scrape_hibret_exchange_rates()
+    return jsonify(result)
+    
+@app.route('/wegagen-exchange-rates', methods=['GET'])
+def get_wegagen_exchange_rates():
+    result = get_wegagen_rates()
+    return jsonify(result)
+
+#awash
+@app.route('/awash-exchange-rates', methods=['GET'])
+def get_awash_exchange_rates():
+    result = get_awash_rates()
+    return jsonify(result)
+
+@app.route('/nib-exchange-rates', methods=['GET'])
+def get_nib_exchange_rates():
+    result = scrape_nib_rates()
+    return jsonify(result)
+
 @app.route('/')
 def index():
     return """
@@ -457,6 +484,10 @@ def index():
         <li><a href="/boa-exchange-rates">/boa-exchange-rates</a> - Scrapes exchange rates from Bank of Abyssinia</li>
         <li><a href="/coop-exchange-rates">/coop-exchange-rates</a> - Scrapes exchange rates from Cooperative Bank of Oromia</li>
         <li><a href="/dashen-exchange-rates">/dashen-exchange-rates</a> - Scrapes exchange rates from Dashen Bank</li>
+        <li><a href="/hibret-exchange-rates">/hibret-exchange-rates</a> - Scrapes exchange rates from Hibret Bank</li>
+        <li><a href="/wegagen-exchange-rates">/wegagen-exchange-rates</a> - Fetches exchange rates from Wegagen</li>
+        <li><a href="/awash-exchange-rates">/awash-exchange-rates</a> - Fetches exchange rates from Awash Bank</li>
+        <li><a href="/nib-exchange-rates">/nib-exchange-rates</a> - Scrapes exchange rates from NIB Bank</li>
     </ul>
     """, 200
 
