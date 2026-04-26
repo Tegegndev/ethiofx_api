@@ -463,7 +463,8 @@ class ExchangeRateTests(unittest.TestCase):
     def test_swagger_docs_and_openapi_spec_are_exposed(self):
         docs_html = self.app.swagger_ui()
         spec = self.app.openapi_json()
-        index_page = self.app.index()
+        with patch.object(self.app, "get_homepage_banks_data", return_value=[]):
+            index_page = self.app.index()
 
         self.assertIn("SwaggerUIBundle", docs_html)
         self.assertEqual(spec["info"]["title"], "Ethiopian Bank Exchange Rates API")

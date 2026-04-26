@@ -447,6 +447,14 @@
     overflow: hidden;
   }
 
+  .bank-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 9px;
+    display: block;
+  }
+
   .bank-name {
     font-size: 14px;
     font-weight: 700;
@@ -528,6 +536,42 @@
     border-radius: 50%;
     background: var(--green);
     animation: pulse 2s infinite;
+  }
+
+  .unavailable-wrap {
+    margin-top: 18px;
+    background: rgba(255, 77, 106, 0.06);
+    border: 1px solid rgba(255, 77, 106, 0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .unavailable-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #fda4af;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+
+  .unavailable-list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .unavailable-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #fecdd3;
+    background: rgba(255, 77, 106, 0.12);
+    border: 1px solid rgba(255, 77, 106, 0.24);
+    border-radius: 999px;
+    padding: 5px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   /* ─── ENDPOINTS ─── */
@@ -808,9 +852,9 @@
       <div>&nbsp;&nbsp;<span class="term-key">"status"</span>: <span class="term-str">"success"</span>,</div>
       <div>&nbsp;&nbsp;<span class="term-key">"bank"</span>: <span class="term-str">"Commercial Bank of Ethiopia"</span>,</div>
       <div>&nbsp;&nbsp;<span class="term-key">"currency"</span>: <span class="term-str">"USD"</span>,</div>
-      <div>&nbsp;&nbsp;<span class="term-key">"buying"</span>: <span class="term-num" id="hero-buy">57.82</span>,</div>
-      <div>&nbsp;&nbsp;<span class="term-key">"selling"</span>: <span class="term-num" id="hero-sell">58.94</span>,</div>
-      <div>&nbsp;&nbsp;<span class="term-key">"date"</span>: <span class="term-str" id="hero-date"></span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"buying"</span>: <span class="term-num" id="hero-buy">{{ '%.2f'|format(hero_rate.buy) if hero_rate else 'N/A' }}</span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"selling"</span>: <span class="term-num" id="hero-sell">{{ '%.2f'|format(hero_rate.sell) if hero_rate else 'N/A' }}</span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"date"</span>: <span class="term-str" id="hero-date">{{ hero_bank.date if hero_bank else '' }}</span>,</div>
       <div>&nbsp;&nbsp;<span class="term-key">"source"</span>: <span class="term-str">"cbe.et/forex"</span></div>
       <div>}</div>
     </div>
@@ -859,6 +903,10 @@
   <div class="rates-grid" id="rates-grid">
     <!-- populated by JS -->
   </div>
+  <div class="unavailable-wrap" id="unavailable-wrap" style="display:none">
+    <div class="unavailable-title">Not Working Currently</div>
+    <ul class="unavailable-list" id="unavailable-list"></ul>
+  </div>
 </section>
 
 <!-- ENDPOINTS SECTION -->
@@ -870,8 +918,8 @@
   <div class="endpoints-grid">
     <a href="/apidocs" class="endpoint-card fade-in">
       <span class="method-badge get">GET</span>
-      <span class="ep-path">/api/v1/rates</span>
-      <span class="ep-desc">All banks, all currencies — current snapshot</span>
+      <span class="ep-path">/api/v1/rates?bank={bank}&currency={ccy}</span>
+      <span class="ep-desc">Single rate lookup using query parameters</span>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
     <a href="/apidocs" class="endpoint-card fade-in">
@@ -888,14 +936,8 @@
     </a>
     <a href="/apidocs" class="endpoint-card fade-in">
       <span class="method-badge get">GET</span>
-      <span class="ep-path">/api/v1/history/{bank}/{currency}</span>
-      <span class="ep-desc">30-day historical rates for a bank/currency pair</span>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </a>
-    <a href="/apidocs" class="endpoint-card fade-in">
-      <span class="method-badge get">GET</span>
-      <span class="ep-path">/api/v1/compare/{currency}</span>
-      <span class="ep-desc">Compare a currency across all 8 banks side-by-side</span>
+      <span class="ep-path">/request-stats</span>
+      <span class="ep-desc">Persistent request counter endpoint (hidden from Swagger)</span>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
     <a href="/apidocs" class="endpoint-card fade-in">
@@ -981,139 +1023,72 @@
   <span>Data sourced from public bank portals. Not financial advice.</span>
 </footer>
 
+<script id="banks-json" type="application/json">{{ (banks_data or [])|tojson }}</script>
 <script>
 // ─── DATA ───
 const today = new Date().toLocaleDateString('en-ET', {year:'numeric',month:'short',day:'2-digit'});
 document.getElementById('footer-year').textContent = new Date().getFullYear();
-document.getElementById('hero-date').textContent = new Date().toISOString().split('T')[0];
-
-const banks = [
-  {
-    name: "Abyssinia Bank", code: "ABY", slug: "abyssinia",
-    color: "#1a6b3c", bg: "#0d3d21", text: "#4ade80",
-    logo: "🦁",
-    rates: [
-      { flag:"🇺🇸", currency:"USD", buy: 57.45, sell: 58.57 },
-      { flag:"🇪🇺", currency:"EUR", buy: 62.10, sell: 63.33 },
-      { flag:"🇬🇧", currency:"GBP", buy: 73.21, sell: 74.68 },
-      { flag:"🇸🇦", currency:"SAR", buy: 15.30, sell: 15.61 },
-    ]
-  },
-  {
-    name: "Commercial Bank of Ethiopia", code: "CBE", slug: "cbe",
-    color: "#1d4ed8", bg: "#0d1f4d", text: "#60a5fa",
-    logo: "🏛️",
-    rates: [
-      { flag:"🇺🇸", currency:"USD", buy: 57.82, sell: 58.94 },
-      { flag:"🇪🇺", currency:"EUR", buy: 62.55, sell: 63.80 },
-      { flag:"🇬🇧", currency:"GBP", buy: 73.90, sell: 75.24 },
-      { flag:"🇦🇪", currency:"AED", buy: 15.74, sell: 16.04 },
-    ]
-  },
-  {
-    name: "Cooperative Bank of Oromia", code: "COOP", slug: "coopbank",
-    color: "#92400e", bg: "#3d1a06", text: "#fbbf24",
-    logo: "🌿",
-    rates: [
-      { flag:"🇺🇸", currency:"USD", buy: 57.30, sell: 58.40 },
-      { flag:"🇪🇺", currency:"EUR", buy: 61.88, sell: 63.05 },
-      { flag:"🇬🇧", currency:"GBP", buy: 72.95, sell: 74.35 },
-      { flag:"🇸🇦", currency:"SAR", buy: 15.27, sell: 15.57 },
-    ]
-  },
-  {
-    name: "Dashen Bank", code: "DSH", slug: "dashen",
-    color: "#7c3aed", bg: "#2d1a5e", text: "#a78bfa",
-    logo: "⛰️",
-    rates: [
-      { flag:"🇺🇸", currency:"USD", buy: 57.60, sell: 58.72 },
-      { flag:"🇪🇺", currency:"EUR", buy: 62.30, sell: 63.56 },
-      { flag:"🇬🇧", currency:"GBP", buy: 73.50, sell: 74.90 },
-      { flag:"🇨🇭", currency:"CHF", buy: 65.10, sell: 66.40 },
-    ]
-  },
-  {
-    name: "NIB International Bank", code: "NIB", slug: "nib",
-    color: "#0e7490", bg: "#062d3a", text: "#22d3ee",
-    logo: "🌊",
-    rates: [
-      { flag:"🇺🇸", currency:"USD", buy: 57.52, sell: 58.64 },
-      { flag:"🇪🇺", currency:"EUR", buy: 62.18, sell: 63.42 },
-      { flag:"🇬🇧", currency:"GBP", buy: 73.35, sell: 74.75 },
-      { flag:"🇯🇵", currency:"JPY", buy: 0.3885, sell: 0.3962 },
-    ]
-  },
-  {
-    name: "Hibret Bank", code: "HIB", slug: "hibret",
-    color: "#be185d", bg: "#4a0726", text: "#f472b6",
-    logo: "🤝",
-    rates: [
-      { flag:"🇺🇸", currency:"USD", buy: 57.40, sell: 58.50 },
-      { flag:"🇪🇺", currency:"EUR", buy: 62.00, sell: 63.25 },
-      { flag:"🇬🇧", currency:"GBP", buy: 73.10, sell: 74.50 },
-      { flag:"🇨🇳", currency:"CNY", buy: 7.95, sell: 8.10 },
-    ]
-  },
-  {
-    name: "Awash Bank", code: "AWB", slug: "awash",
-    color: "#b45309", bg: "#3d1c02", text: "#fb923c",
-    logo: "🌅",
-    rates: [
-      { flag:"🇺🇸", currency:"USD", buy: 57.68, sell: 58.80 },
-      { flag:"🇪🇺", currency:"EUR", buy: 62.40, sell: 63.65 },
-      { flag:"🇬🇧", currency:"GBP", buy: 73.60, sell: 75.02 },
-      { flag:"🇦🇪", currency:"AED", buy: 15.70, sell: 16.00 },
-    ]
-  },
-  {
-    name: "Wegagen Bank", code: "WGG", slug: "wegagen",
-    color: "#065f46", bg: "#022c21", text: "#34d399",
-    logo: "🌾",
-    rates: [
-      { flag:"🇺🇸", currency:"USD", buy: 57.35, sell: 58.45 },
-      { flag:"🇪🇺", currency:"EUR", buy: 61.95, sell: 63.18 },
-      { flag:"🇬🇧", currency:"GBP", buy: 73.05, sell: 74.44 },
-      { flag:"🇸🇦", currency:"SAR", buy: 15.28, sell: 15.59 },
-    ]
-  }
-];
+const banks = JSON.parse(document.getElementById('banks-json').textContent);
+const liveBanks = banks.filter(bank => bank.status !== 'unavailable');
+const unavailableBanks = banks.filter(bank => bank.status === 'unavailable');
+const currencyFlags = {
+  USD: "🇺🇸", EUR: "🇪🇺", GBP: "🇬🇧", AED: "🇦🇪", SAR: "🇸🇦", CNY: "🇨🇳",
+  CHF: "🇨🇭", JPY: "🇯🇵", CAD: "🇨🇦", SEK: "🇸🇪", NOK: "🇳🇴", DKK: "🇩🇰",
+  KES: "🇰🇪", ZAR: "🇿🇦", INR: "🇮🇳", AUD: "🇦🇺", DJF: "🇩🇯"
+};
 
 // ─── RENDER RATE CARDS ───
 function renderRates() {
   const grid = document.getElementById('rates-grid');
-  grid.innerHTML = banks.map(bank => `
-    <div class="rate-card fade-in">
-      <div class="bank-header">
-        <div class="bank-logo" style="background:${bank.bg};color:${bank.text};border:1px solid ${bank.color}33">${bank.logo}</div>
-        <div>
-          <div class="bank-name">${bank.name}</div>
-          <div class="bank-code">${bank.code} · /api/v1/rates/${bank.slug}</div>
+  if (!liveBanks.length) {
+    grid.innerHTML = '<div class="rate-card"><div class="bank-name">No live rate data available right now.</div></div>';
+  } else {
+    grid.innerHTML = liveBanks.map(bank => `
+      <div class="rate-card fade-in">
+        <div class="bank-header">
+          <div class="bank-logo" style="background:${bank.bg};color:${bank.text};border:1px solid ${bank.color}33">
+            ${bank.logo_url ? `<img src="${bank.logo_url}" alt="${bank.name} logo" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : bank.code.slice(0,3)}
+          </div>
+          <div>
+            <div class="bank-name">${bank.name}</div>
+            <div class="bank-code">${bank.code} · /api/v1/rates/${bank.slug}</div>
+          </div>
         </div>
-      </div>
-      <div class="rate-header-row">
-        <div class="rate-col-label"></div>
-        <div class="rate-col-label">PAIR</div>
-        <div class="rate-col-label">BUY</div>
-        <div class="rate-col-label">SELL</div>
-      </div>
-      ${bank.rates.map(r => `
-        <div class="rate-row">
-          <div class="rate-flag">${r.flag}</div>
-          <div class="rate-currency">${r.currency}/ETB</div>
-          <div class="rate-buy">${r.buy.toFixed(r.buy < 1 ? 4 : 2)}</div>
-          <div class="rate-sell">${r.sell.toFixed(r.sell < 1 ? 4 : 2)}</div>
+        <div class="rate-header-row">
+          <div class="rate-col-label"></div>
+          <div class="rate-col-label">PAIR</div>
+          <div class="rate-col-label">BUY</div>
+          <div class="rate-col-label">SELL</div>
         </div>
-      `).join('')}
-      <div class="updated-tag"><div class="live-dot"></div>${today} · EAT</div>
-    </div>
-  `).join('');
+        ${(bank.rates || []).map(r => `
+          <div class="rate-row">
+            <div class="rate-flag">${currencyFlags[r.currency] || '💱'}</div>
+            <div class="rate-currency">${r.currency}/ETB</div>
+            <div class="rate-buy">${r.buy.toFixed(r.buy < 1 ? 4 : 2)}</div>
+            <div class="rate-sell">${r.sell.toFixed(r.sell < 1 ? 4 : 2)}</div>
+          </div>
+        `).join('')}
+        <div class="updated-tag"><div class="live-dot"></div>${bank.date || today} · EAT</div>
+      </div>
+    `).join('');
+  }
+
+  const unavailableWrap = document.getElementById('unavailable-wrap');
+  const unavailableList = document.getElementById('unavailable-list');
+  if (unavailableBanks.length) {
+    unavailableWrap.style.display = 'block';
+    unavailableList.innerHTML = unavailableBanks.map(bank => `
+      <li class="unavailable-item">🔒 ${bank.name}</li>
+    `).join('');
+  }
+
   triggerFadeIns();
 }
 
 // ─── TICKER ───
 function buildTicker() {
   const items = [];
-  banks.forEach(bank => {
+  liveBanks.forEach(bank => {
     bank.rates.forEach(r => {
       const pct = ((r.sell - r.buy) / r.buy * 100 / 2).toFixed(2);
       const isUp = Math.random() > 0.4;
@@ -1156,8 +1131,15 @@ function triggerFadeIns() {
 
 // ─── LIVE FLUCTUATION ───
 function jitter() {
-  document.getElementById('hero-buy').textContent = (57.82 + (Math.random()-0.5)*0.08).toFixed(2);
-  document.getElementById('hero-sell').textContent = (58.94 + (Math.random()-0.5)*0.08).toFixed(2);
+  const heroBuy = document.getElementById('hero-buy');
+  const heroSell = document.getElementById('hero-sell');
+  const buy = parseFloat(heroBuy.textContent);
+  const sell = parseFloat(heroSell.textContent);
+  if (Number.isNaN(buy) || Number.isNaN(sell)) {
+    return;
+  }
+  heroBuy.textContent = (buy + (Math.random()-0.5)*0.04).toFixed(2);
+  heroSell.textContent = (sell + (Math.random()-0.5)*0.04).toFixed(2);
 }
 
 // ─── INIT ───

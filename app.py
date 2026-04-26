@@ -402,6 +402,72 @@ def get_banks_catalog():
     return sorted(BANKS_CATALOG.values(), key=lambda item: item["short_name"])
 
 
+def get_homepage_banks_data():
+    themes = [
+        {"color": "#1d4ed8", "bg": "#0d1f4d", "text": "#60a5fa"},
+        {"color": "#1a6b3c", "bg": "#0d3d21", "text": "#4ade80"},
+        {"color": "#92400e", "bg": "#3d1a06", "text": "#fbbf24"},
+        {"color": "#7c3aed", "bg": "#2d1a5e", "text": "#a78bfa"},
+        {"color": "#0e7490", "bg": "#062d3a", "text": "#22d3ee"},
+        {"color": "#be185d", "bg": "#4a0726", "text": "#f472b6"},
+        {"color": "#b45309", "bg": "#3d1c02", "text": "#fb923c"},
+        {"color": "#065f46", "bg": "#022c21", "text": "#34d399"},
+    ]
+    priority = ["USD", "EUR", "GBP", "AED", "SAR", "CHF", "JPY", "CNY"]
+
+    banks = []
+    for idx, bank in enumerate(get_banks_catalog()):
+        theme = themes[idx % len(themes)]
+        rates_result = get_bank_rates(bank["short_name"])
+
+        rates_map = {}
+        rates_date = datetime.now(timezone.utc).date().isoformat()
+        status = "live"
+        if isinstance(rates_result, tuple):
+            status = "unavailable"
+        else:
+            rates_map = rates_result.get("rates", {})
+            rates_date = rates_result.get("date", rates_date)
+
+        ordered_codes = [code for code in priority if code in rates_map]
+        ordered_codes.extend(sorted([code for code in rates_map if code not in ordered_codes]))
+
+        display_rates = []
+        for code in ordered_codes:
+            rate = rates_map.get(code, {})
+            if not isinstance(rate, dict):
+                continue
+            buying = rate.get("buying")
+            selling = rate.get("selling")
+            if buying is None or selling is None:
+                continue
+            display_rates.append(
+                {
+                    "currency": code,
+                    "buy": float(buying),
+                    "sell": float(selling),
+                }
+            )
+            if len(display_rates) == 4:
+                break
+
+        banks.append(
+            {
+                "name": bank["full_name"],
+                "code": bank["short_name"].upper(),
+                "slug": bank["short_name"],
+                "logo_url": bank["logo_url"],
+                "source": bank["source"],
+                "status": status,
+                "date": rates_date,
+                "rates": display_rates,
+                **theme,
+            }
+        )
+
+    return banks
+
+
 def _resolve_bank_metadata(bank_value):
     if not bank_value:
         return None
@@ -905,7 +971,18 @@ def swagger_ui():
 
 @app.route("/")
 def index():
-    return render_template("index.html"), 200
+    banks_data = get_homepage_banks_data()
+    hero_bank = next((bank for bank in banks_data if bank["slug"] == "cbe"), banks_data[0] if banks_data else None)
+    hero_rate = None
+    if hero_bank:
+        hero_rate = next((rate for rate in hero_bank["rates"] if rate["currency"] == "USD"), None)
+
+    return render_template(
+        "index.html",
+        banks_data=banks_data,
+        hero_rate=hero_rate,
+        hero_bank=hero_bank,
+    ), 200
 
 
 # Flask-RESTPlus/RESTX also registers a "/" endpoint named "root".
