@@ -20,9 +20,43 @@ def install_import_stubs():
         def jsonify(value):
             return value
 
+        def url_for(*_args, **_kwargs):
+            return ""
+
+        class _Request:
+            pass
+
         flask_stub.Flask = Flask
         flask_stub.jsonify = jsonify
+        flask_stub.url_for = url_for
+        flask_stub.request = _Request()
         sys.modules["flask"] = flask_stub
+
+    if "flask_restplus" not in sys.modules:
+        frp_stub = types.ModuleType("flask_restplus")
+
+        class Resource:
+            pass
+
+        class Api:
+            def __init__(self, app, **_kwargs):
+                self.app = app
+                self.__schema__ = {
+                    "info": {"title": "Ethiopian Bank Exchange Rates API"},
+                    "paths": {
+                        "/cbe-exchange-rates": {},
+                    },
+                }
+
+            def route(self, *_args, **_kwargs):
+                def decorator(cls):
+                    return cls
+
+                return decorator
+
+        frp_stub.Api = Api
+        frp_stub.Resource = Resource
+        sys.modules["flask_restplus"] = frp_stub
 
     if "bs4" not in sys.modules:
         bs4_stub = types.ModuleType("bs4")

@@ -1,7 +1,11 @@
 import logging
 import re
-from termcolor import colored
 import requests
+
+try:
+    from termcolor import colored
+except ImportError:
+    colored = None
 
 logger = logging.getLogger(__name__)
 
@@ -108,4 +112,7 @@ if __name__ == "__main__":
     for code, r in rates.items():
         print(r)
 
-    print(colored("COnfigure Nonce security for awash bank", "red"))
+    if colored:
+        print(colored("COnfigure Nonce security for awash bank", "red"))
+    else:
+        print("COnfigure Nonce security for awash bank")

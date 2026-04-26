@@ -405,6 +405,16 @@ class ExchangeRateTests(unittest.TestCase):
                 ({"error": "Failed to fetch NIB Bank exchange rates"}, 500),
             )
 
+    def test_swagger_docs_and_openapi_spec_are_exposed(self):
+        docs_html = self.app.swagger_ui()
+        spec = self.app.openapi_json()
+        index_page = self.app.index()
+
+        self.assertIn("SwaggerUIBundle", docs_html)
+        self.assertEqual(spec["info"]["title"], "Ethiopian Bank Exchange Rates API")
+        self.assertIn("/cbe-exchange-rates", spec["paths"])
+        self.assertIn("/apidocs", index_page[0])
+
 
 if __name__ == "__main__":
     unittest.main()

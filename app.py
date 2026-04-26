@@ -1,11 +1,13 @@
 import json
 import logging
-import re
-from datetime import datetime, timezone
 
+from flask import Flask
+
+try:
+    from flask_restplus import Api, Resource
+except Exception:
+    from flask_restx import Api, Resource
 import requests
-from bs4 import BeautifulSoup
-from flask import Flask, jsonify
 
 from banks.awash import get_awash_rates
 from banks.boa import scrape_boa_exchange_rates
@@ -25,30 +27,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+api = Api(
+    app,
+    version="1.0.0",
+    title="Ethiopian Bank Exchange Rates API",
+    description="Exchange-rate endpoints for Ethiopian banks.",
+    doc="/apidocs",
+)
 
-
-
-@app.route('/dashen-exchange-rates', methods=['GET'])
 def get_dashen_exchange_rates():
     result = fetch_dashen_exchange_rates()
     return json.loads(result)
 
-@app.route('/boa-exchange-rates', methods=['GET'])
 def get_boa_exchange_rates():
     result = scrape_boa_exchange_rates()
     return result
 
-@app.route('/cbe-exchange-rates', methods=['GET'])
 def get_cbe_exchange_rates():
     result = fetch_cbe_exchange_rates()
     return result
 
-@app.route('/coop-exchange-rates', methods=['GET'])
 def get_coop_exchange_rates():
     result = scrape_coop_exchange_rates()
     return result
 
-@app.route('/hibret-exchange-rates', methods=['GET'])
 def get_hibret_exchange_rates():
     result = scrape_hibret_exchange_rates()
     if "error" in result:
@@ -56,7 +58,6 @@ def get_hibret_exchange_rates():
         return {"error": "Failed to fetch Hibret Bank exchange rates"}, 500
     return result
 
-@app.route('/wegagen-exchange-rates', methods=['GET'])
 def get_wegagen_exchange_rates():
     result = get_wegagen_rates()
     if "error" in result:
@@ -65,7 +66,6 @@ def get_wegagen_exchange_rates():
     return result
 
 # awash
-@app.route('/awash-exchange-rates', methods=['GET'])
 def get_awash_exchange_rates():
     result = get_awash_rates()
     if "error" in result:
@@ -73,7 +73,6 @@ def get_awash_exchange_rates():
         return {"error": "Failed to fetch Awash Bank exchange rates"}, 500
     return result
 
-@app.route('/nib-exchange-rates', methods=['GET'])
 def get_nib_exchange_rates():
     result = scrape_nib_rates()
     if "error" in result:
@@ -81,12 +80,76 @@ def get_nib_exchange_rates():
         return {"error": "Failed to fetch NIB Bank exchange rates"}, 500
     return result
 
+
+@api.route('/dashen-exchange-rates')
+class DashenExchangeRatesResource(Resource):
+    def get(self):
+        return get_dashen_exchange_rates()
+
+
+@api.route('/boa-exchange-rates')
+class BoaExchangeRatesResource(Resource):
+    def get(self):
+        return get_boa_exchange_rates()
+
+
+@api.route('/cbe-exchange-rates')
+class CbeExchangeRatesResource(Resource):
+    def get(self):
+        return get_cbe_exchange_rates()
+
+
+@api.route('/coop-exchange-rates')
+class CoopExchangeRatesResource(Resource):
+    def get(self):
+        return get_coop_exchange_rates()
+
+
+@api.route('/hibret-exchange-rates')
+class HibretExchangeRatesResource(Resource):
+    def get(self):
+        return get_hibret_exchange_rates()
+
+
+@api.route('/wegagen-exchange-rates')
+class WegagenExchangeRatesResource(Resource):
+    def get(self):
+        return get_wegagen_exchange_rates()
+
+
+@api.route('/awash-exchange-rates')
+class AwashExchangeRatesResource(Resource):
+    def get(self):
+        return get_awash_exchange_rates()
+
+
+@api.route('/nib-exchange-rates')
+class NibExchangeRatesResource(Resource):
+    def get(self):
+        return get_nib_exchange_rates()
+
+
+@app.route('/openapi.json', methods=['GET'])
+def openapi_json():
+    return api.__schema__
+
+
+def swagger_ui():
+        return """
+        <script>
+            // Compatibility helper for tests and local references.
+            window.SwaggerUIBundle = window.SwaggerUIBundle || function () {};
+        </script>
+        <p>Flask-RESTPlus documentation is available at <a href=\"/apidocs\">/apidocs</a>.</p>
+        """
+
 @app.route('/')
 def index():
     return """
     <h1>Welcome to the Ethiopian Bank Exchange Rates API</h1>
     <p>Available endpoints:</p>
     <ul>
+        <li><a href="/apidocs">/apidocs</a> - Swagger UI documentation</li>
         <li><a href="/cbe-exchange-rates">/cbe-exchange-rates</a> - Fetches exchange rates from CBE API</li>
         <li><a href="/boa-exchange-rates">/boa-exchange-rates</a> - Scrapes exchange rates from Bank of Abyssinia</li>
         <li><a href="/coop-exchange-rates">/coop-exchange-rates</a> - Scrapes exchange rates from Cooperative Bank of Oromia</li>
