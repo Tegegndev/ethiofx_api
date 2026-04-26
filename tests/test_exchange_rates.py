@@ -380,6 +380,60 @@ class ExchangeRateTests(unittest.TestCase):
         with patch.object(self.app, "scrape_nib_rates", return_value={"USD": {"buying": 7}}):
             self.assertEqual(self.app.get_nib_exchange_rates(), {"USD": {"buying": 7}})
 
+    def test_coop_wrapper_payload_is_normalized_to_standard_schema(self):
+        wrapped_payload = [
+            {
+                "ExchangeRate": [
+                    {
+                        "cashBuying": 153.1701,
+                        "cashSelling": 156.2335,
+                        "currency": {
+                            "CurrencyCode": "USD",
+                            "CurrencyName": "US DOLLAR",
+                        },
+                    },
+                    {
+                        "cashBuying": 209.3762,
+                        "cashSelling": 213.5637,
+                        "currency": {
+                            "CurrencyCode": "GBP",
+                            "CurrencyName": "POUND STERLING",
+                        },
+                    },
+                ]
+            }
+        ]
+
+        with patch.object(self.app, "scrape_coop_exchange_rates", return_value=json.dumps(wrapped_payload)):
+            result = self.app.get_coop_exchange_rates()
+
+        self.assertEqual(
+            result,
+            {
+                "USD": {
+                    "currency_code": "USD",
+                    "name": "US DOLLAR",
+                    "buying": 153.1701,
+                    "selling": 156.2335,
+                },
+                "GBP": {
+                    "currency_code": "GBP",
+                    "name": "POUND STERLING",
+                    "buying": 209.3762,
+                    "selling": 213.5637,
+                },
+            },
+        )
+
+    def test_coop_wrapper_payload_with_no_rates_returns_500_error(self):
+        with patch.object(self.app, "scrape_coop_exchange_rates", return_value=json.dumps([{"ExchangeRate": []}])):
+            result = self.app.get_coop_exchange_rates()
+
+        self.assertEqual(
+            result,
+            ({"error": "Failed to parse Cooperative Bank exchange rates"}, 500),
+        )
+
     def test_error_routes_return_500_payload(self):
         with patch.object(self.app, "scrape_hibret_exchange_rates", return_value={"error": "upstream"}):
             self.assertEqual(

@@ -239,7 +239,46 @@ def get_cbe_exchange_rates(target_date=None):
 
 
 def get_coop_exchange_rates():
-    return scrape_coop_exchange_rates()
+    result = scrape_coop_exchange_rates()
+
+    # coop scraper currently returns a JSON-encoded string; normalize to a JSON object/list.
+    if isinstance(result, str):
+        try:
+            result = json.loads(result)
+        except json.JSONDecodeError:
+            logger.error("Coop endpoint returned non-JSON payload")
+            return {"error": "Failed to parse Cooperative Bank exchange rates"}, 500
+
+    if isinstance(result, dict) and "error" in result:
+        logger.error("Coop endpoint returning error: %s", result["error"])
+        return {"error": "Failed to fetch Cooperative Bank exchange rates"}, 500
+
+    # Coop upstream shape is a wrapper list with an ExchangeRate array.
+    # Normalize it to the API-wide schema keyed by currency code.
+    if isinstance(result, list) and result and isinstance(result[0], dict):
+        exchange_rates = result[0].get("ExchangeRate", [])
+        normalized = {}
+
+        for rate in exchange_rates:
+            currency = rate.get("currency", {})
+            code = currency.get("CurrencyCode")
+            if not code:
+                continue
+
+            normalized[code] = {
+                "currency_code": code,
+                "name": currency.get("CurrencyName", code),
+                "buying": rate.get("cashBuying"),
+                "selling": rate.get("cashSelling"),
+            }
+
+        if normalized:
+            return normalized
+
+        logger.error("Coop endpoint returned wrapper payload without usable rates")
+        return {"error": "Failed to parse Cooperative Bank exchange rates"}, 500
+
+    return result
 
 
 def get_hibret_exchange_rates():
