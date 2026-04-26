@@ -50,6 +50,9 @@ REQUEST_STATS_FILE = Path(__file__).resolve().parent / "temp" / "request_stats.j
 REQUEST_STATS_LOCK = Lock()
 TRACKING_EXCLUDED_PATHS = {"/request-stats"}
 BANKS_CATALOG_FILE = Path(__file__).resolve().parent / "banks" / "catalog.json"
+HOMEPAGE_CACHE_FILE = Path(__file__).resolve().parent / "temp" / "homepage_banks_cache.json"
+HOMEPAGE_CACHE_LOCK = Lock()
+HOMEPAGE_CACHE_TTL_SECONDS = 300
 
 DATE_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -466,6 +469,73 @@ def get_homepage_banks_data():
         )
 
     return banks
+
+
+def _read_homepage_cache_payload():
+    if not HOMEPAGE_CACHE_FILE.exists():
+        return None
+
+    try:
+        with HOMEPAGE_CACHE_FILE.open("r", encoding="utf-8") as fp:
+            payload = json.load(fp)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    banks = payload.get("banks")
+    if not isinstance(banks, list):
+        return None
+
+    generated_at = payload.get("generated_at")
+    return {
+        "generated_at": generated_at,
+        "banks": banks,
+    }
+
+
+def _write_homepage_cache_payload(banks_data):
+    HOMEPAGE_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "banks": banks_data,
+    }
+    with HOMEPAGE_CACHE_FILE.open("w", encoding="utf-8") as fp:
+        json.dump(payload, fp, indent=2)
+
+
+def _is_homepage_cache_fresh(generated_at, max_age_seconds):
+    if not generated_at or max_age_seconds <= 0:
+        return False
+    try:
+        created_at = datetime.fromisoformat(str(generated_at).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    age_seconds = (datetime.now(timezone.utc) - created_at).total_seconds()
+    return age_seconds <= max_age_seconds
+
+
+def get_cached_homepage_banks_data():
+    with HOMEPAGE_CACHE_LOCK:
+        payload = _read_homepage_cache_payload()
+        return payload["banks"] if payload else []
+
+
+def get_homepage_banks_data_cached(max_age_seconds=HOMEPAGE_CACHE_TTL_SECONDS):
+    with HOMEPAGE_CACHE_LOCK:
+        payload = _read_homepage_cache_payload()
+        if payload and _is_homepage_cache_fresh(payload.get("generated_at"), max_age_seconds):
+            return payload["banks"]
+
+        try:
+            banks_data = get_homepage_banks_data()
+        except Exception:
+            logger.exception("Failed to refresh homepage banks cache")
+            return payload["banks"] if payload else []
+
+        _write_homepage_cache_payload(banks_data)
+        return banks_data
 
 
 def _resolve_bank_metadata(bank_value):
@@ -959,6 +1029,12 @@ def openapi_json():
     return api.__schema__
 
 
+@app.route("/home/rates-fragment", methods=["GET"])
+def homepage_rates_fragment():
+    banks_data = get_homepage_banks_data_cached()
+    return render_template("partials/rates_fragment.html", banks_data=banks_data), 200
+
+
 def swagger_ui():
     # Compatibility helper used by tests expecting SwaggerUIBundle marker.
     return """
@@ -971,7 +1047,7 @@ def swagger_ui():
 
 @app.route("/")
 def index():
-    banks_data = get_homepage_banks_data()
+    banks_data = get_cached_homepage_banks_data()
     hero_bank = next((bank for bank in banks_data if bank["slug"] == "cbe"), banks_data[0] if banks_data else None)
     hero_rate = None
     if hero_bank:
@@ -979,7 +1055,6 @@ def index():
 
     return render_template(
         "index.html",
-        banks_data=banks_data,
         hero_rate=hero_rate,
         hero_bank=hero_bank,
     ), 200

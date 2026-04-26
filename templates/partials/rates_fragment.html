@@ -1,0 +1,81 @@
+{% set currency_flags = {
+  'USD': '🇺🇸', 'EUR': '🇪🇺', 'GBP': '🇬🇧', 'AED': '🇦🇪', 'SAR': '🇸🇦', 'CNY': '🇨🇳',
+  'CHF': '🇨🇭', 'JPY': '🇯🇵', 'CAD': '🇨🇦', 'SEK': '🇸🇪', 'NOK': '🇳🇴', 'DKK': '🇩🇰',
+  'KES': '🇰🇪', 'ZAR': '🇿🇦', 'INR': '🇮🇳', 'AUD': '🇦🇺', 'DJF': '🇩🇯'
+} %}
+{% set live_banks = banks_data | rejectattr('status', 'equalto', 'unavailable') | list %}
+{% set unavailable_banks = banks_data | selectattr('status', 'equalto', 'unavailable') | list %}
+
+<div class="rates-grid" id="rates-grid">
+  {% if live_banks %}
+    {% for bank in live_banks %}
+      <div class="rate-card fade-in">
+        <div class="bank-header">
+          <div class="bank-logo" style="background:{{ bank.bg }};color:{{ bank.text }};border:1px solid {{ bank.color }}33">
+            {% if bank.logo_url %}
+              <img src="{{ bank.logo_url }}" alt="{{ bank.name }} logo" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
+            {% else %}
+              {{ bank.code[:3] }}
+            {% endif %}
+          </div>
+          <div>
+            <div class="bank-name">{{ bank.name }}</div>
+            <div class="bank-code">{{ bank.code }} · /api/v1/rates/{{ bank.slug }}</div>
+          </div>
+        </div>
+        <div class="rate-header-row">
+          <div class="rate-col-label"></div>
+          <div class="rate-col-label">PAIR</div>
+          <div class="rate-col-label">BUY</div>
+          <div class="rate-col-label">SELL</div>
+        </div>
+        {% for r in bank.rates %}
+          <div class="rate-row">
+            <div class="rate-flag">{{ currency_flags.get(r.currency, '💱') }}</div>
+            <div class="rate-currency">{{ r.currency }}/ETB</div>
+            <div class="rate-buy">{{ '%.4f'|format(r.buy) if r.buy < 1 else '%.2f'|format(r.buy) }}</div>
+            <div class="rate-sell">{{ '%.4f'|format(r.sell) if r.sell < 1 else '%.2f'|format(r.sell) }}</div>
+          </div>
+        {% endfor %}
+        <div class="updated-tag"><div class="live-dot"></div>{{ bank.date }} · EAT</div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="rate-card"><div class="bank-name">No live rate data available right now.</div></div>
+  {% endif %}
+</div>
+
+{% if unavailable_banks %}
+  <div class="unavailable-wrap" id="unavailable-wrap">
+    <div class="unavailable-title">Not Working Currently</div>
+    <ul class="unavailable-list" id="unavailable-list">
+      {% for bank in unavailable_banks %}
+        <li class="unavailable-item">🔒 {{ bank.name }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<div id="ticker" class="ticker-inner" hx-swap-oob="innerHTML">
+  {% if live_banks %}
+    {% for _ in range(2) %}
+      {% for bank in live_banks %}
+        {% for r in bank.rates %}
+          {% set pct = ((((r.sell - r.buy) / r.buy) * 50) if r.buy else 0) %}
+          {% set is_up = r.sell >= r.buy %}
+          <div class="ticker-item">
+            <span style="color:var(--text-dim)">{{ bank.code }}</span>
+            <span style="color:var(--text)">{{ r.currency }}/ETB</span>
+            <span class="{{ 'ticker-up' if is_up else 'ticker-down' }}">{{ '▲' if is_up else '▼' }} {{ '%.4f'|format(r.sell) if r.sell < 1 else '%.2f'|format(r.sell) }}</span>
+            <span style="color:var(--muted);font-size:10px">{{ '+' if is_up else '−' }}{{ '%.2f'|format(pct|abs) }}%</span>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    {% endfor %}
+  {% else %}
+    <div class="ticker-item">
+      <span style="color:var(--text-dim)">LIVE</span>
+      <span style="color:var(--text)">Ticker unavailable</span>
+    </div>
+  {% endif %}
+</div>
