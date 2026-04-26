@@ -1,6 +1,9 @@
 import json
 import logging
 import re
+from datetime import datetime, timezone
+from pathlib import Path
+from threading import Lock
 
 from flask import Flask, request
 
@@ -42,6 +45,10 @@ api = Api(
     ),
     doc="/apidocs",
 )
+
+REQUEST_STATS_FILE = Path(__file__).resolve().parent / "temp" / "request_stats.json"
+REQUEST_STATS_LOCK = Lock()
+TRACKING_EXCLUDED_PATHS = {"/request-stats"}
 
 DATE_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -209,6 +216,64 @@ def _json_block(payload):
     return "```json\n" + json.dumps(payload, indent=2) + "\n```"
 
 
+def _default_request_stats():
+    return {
+        "total_requests": 0,
+        "updated_at": None,
+        "by_path": {},
+    }
+
+
+def _load_request_stats():
+    if not REQUEST_STATS_FILE.exists():
+        return _default_request_stats()
+
+    try:
+        with REQUEST_STATS_FILE.open("r", encoding="utf-8") as fp:
+            data = json.load(fp)
+    except (json.JSONDecodeError, OSError):
+        return _default_request_stats()
+
+    if not isinstance(data, dict):
+        return _default_request_stats()
+
+    stats = _default_request_stats()
+    stats["total_requests"] = int(data.get("total_requests", 0) or 0)
+    stats["updated_at"] = data.get("updated_at")
+    by_path = data.get("by_path", {})
+    stats["by_path"] = by_path if isinstance(by_path, dict) else {}
+    return stats
+
+
+def _save_request_stats(stats):
+    REQUEST_STATS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with REQUEST_STATS_FILE.open("w", encoding="utf-8") as fp:
+        json.dump(stats, fp, indent=2)
+
+
+def _increment_request_stats(path):
+    with REQUEST_STATS_LOCK:
+        stats = _load_request_stats()
+        stats["total_requests"] += 1
+        stats["updated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        stats["by_path"][path] = int(stats["by_path"].get(path, 0) or 0) + 1
+        _save_request_stats(stats)
+
+
+def get_request_stats():
+    return _load_request_stats()
+
+
+@app.before_request
+def track_request_counter():
+    path = request.path or ""
+    if path in TRACKING_EXCLUDED_PATHS:
+        return
+    if path.startswith("/static/"):
+        return
+    _increment_request_stats(path)
+
+
 def _read_date_param():
     """Read and validate optional date query parameter.
 
@@ -311,6 +376,11 @@ def get_nib_exchange_rates():
         logger.error("NIB endpoint returning error: %s", result["error"])
         return {"error": "Failed to fetch NIB Bank exchange rates"}, 500
     return result
+
+
+@app.route("/request-stats", methods=["GET"])
+def request_stats_endpoint():
+    return get_request_stats()
 
 
 @api.route("/dashen-exchange-rates")
@@ -511,6 +581,7 @@ def index():
     <p>Available endpoints:</p>
     <ul>
         <li><a href="/apidocs">/apidocs</a> - Swagger UI documentation</li>
+        <li><a href="/request-stats">/request-stats</a> - Shows total tracked requests (saved in temp/request_stats.json)</li>
         <li><a href="/cbe-exchange-rates">/cbe-exchange-rates</a> - Fetches exchange rates from CBE API</li>
         <li><a href="/cbe-exchange-rates?date=2026-04-24">/cbe-exchange-rates?date=YYYY-MM-DD</a> - Fetches CBE rates for a specific date</li>
         <li><a href="/boa-exchange-rates">/boa-exchange-rates</a> - Scrapes exchange rates from Bank of Abyssinia</li>

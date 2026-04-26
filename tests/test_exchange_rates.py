@@ -1,4 +1,5 @@
 import json
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -468,6 +469,33 @@ class ExchangeRateTests(unittest.TestCase):
         self.assertEqual(spec["info"]["title"], "Ethiopian Bank Exchange Rates API")
         self.assertIn("/cbe-exchange-rates", spec["paths"])
         self.assertIn("/apidocs", index_page[0])
+
+    def test_request_stats_file_counter_persists(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            stats_file = self.app.Path(tmp_dir) / "request_stats.json"
+
+            with patch.object(self.app, "REQUEST_STATS_FILE", stats_file):
+                self.assertEqual(self.app.get_request_stats()["total_requests"], 0)
+                self.app._increment_request_stats("/cbe-exchange-rates")
+                self.app._increment_request_stats("/cbe-exchange-rates")
+                self.app._increment_request_stats("/boa-exchange-rates")
+
+                stats = self.app.get_request_stats()
+
+        self.assertEqual(stats["total_requests"], 3)
+        self.assertEqual(stats["by_path"]["/cbe-exchange-rates"], 2)
+        self.assertEqual(stats["by_path"]["/boa-exchange-rates"], 1)
+        self.assertTrue(stats["updated_at"].endswith("Z"))
+
+    def test_request_stats_endpoint_delegates_to_stats_reader(self):
+        with patch.object(
+            self.app,
+            "get_request_stats",
+            return_value={"total_requests": 9, "updated_at": None, "by_path": {}},
+        ):
+            result = self.app.request_stats_endpoint()
+
+        self.assertEqual(result["total_requests"], 9)
 
 
 if __name__ == "__main__":

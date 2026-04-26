@@ -17,6 +17,9 @@ def install_import_stubs():
 
                 return decorator
 
+            def before_request(self, func):
+                return func
+
         def jsonify(value):
             return value
 
