@@ -82,6 +82,133 @@ error_response_model = api.model(
 )
 
 
+EXAMPLE_CBE_RATES = {
+    "USD": {
+        "currency_code": "USD",
+        "name": "US DOLLAR",
+        "buying": 56.12,
+        "selling": 57.01,
+    },
+    "EUR": {
+        "currency_code": "EUR",
+        "name": "EURO",
+        "buying": 60.10,
+        "selling": 61.00,
+    },
+}
+
+EXAMPLE_BOA_RATES = {
+    "USD": {
+        "currency_code": "USD",
+        "name": "US DOLLAR",
+        "buying": 56.20,
+        "selling": 57.20,
+    },
+    "GBP": {
+        "currency_code": "GBP",
+        "name": "POUND STERLING",
+        "buying": 71.80,
+        "selling": 73.40,
+    },
+}
+
+EXAMPLE_COOP_RATES = {
+    "USD": {
+        "currency_code": "USD",
+        "name": "US DOLLAR",
+        "buying": 56.05,
+        "selling": 57.00,
+    },
+    "AED": {
+        "currency_code": "AED",
+        "name": "UAE DIRHAM",
+        "buying": 15.20,
+        "selling": 15.50,
+    },
+}
+
+EXAMPLE_DASHEN_RATES = {
+    "USD": {
+        "currency_code": "USD",
+        "name": "US DOLLAR",
+        "buying": 56.50,
+        "selling": 57.60,
+    },
+    "EUR": {
+        "currency_code": "EUR",
+        "name": "EURO",
+        "buying": 60.70,
+        "selling": 62.00,
+    },
+}
+
+EXAMPLE_HIBRET_RATES = {
+    "USD": {
+        "currency_code": "USD",
+        "name": "US DOLLAR",
+        "buying": 56.70,
+        "selling": 57.40,
+    },
+    "EUR": {
+        "currency_code": "EUR",
+        "name": "EURO",
+        "buying": 60.10,
+        "selling": 61.20,
+    },
+}
+
+EXAMPLE_WEGAGEN_RATES = {
+    "USD": {
+        "currency_code": "USD",
+        "name": "US DOLLAR",
+        "buying": 55.90,
+        "selling": 56.80,
+    },
+    "EUR": {
+        "currency_code": "EUR",
+        "name": "EURO",
+        "buying": 60.30,
+        "selling": 61.30,
+    },
+}
+
+EXAMPLE_AWASH_RATES = {
+    "USD": {
+        "currency_code": "USD",
+        "name": "US DOLLAR",
+        "buying": 56.10,
+        "selling": 57.20,
+    },
+    "CAD": {
+        "currency_code": "CAD",
+        "name": "CANADIAN DOLLAR",
+        "buying": 41.20,
+        "selling": 42.00,
+    },
+}
+
+EXAMPLE_NIB_RATES = {
+    "USD": {
+        "currency_code": "USD",
+        "name": "US DOLLAR",
+        "buying": 56.10,
+        "selling": 57.22,
+    },
+    "EUR": {
+        "currency_code": "EUR",
+        "name": "EURO",
+        "buying": 60.40,
+        "selling": 61.50,
+    },
+}
+
+EXAMPLE_ERROR = {"error": "Failed to fetch Hibret Bank exchange rates"}
+
+
+def _json_block(payload):
+    return "```json\n" + json.dumps(payload, indent=2) + "\n```"
+
+
 def _read_date_param():
     """Read and validate optional date query parameter.
 
@@ -151,7 +278,11 @@ def get_nib_exchange_rates():
 class DashenExchangeRatesResource(Resource):
     @api.doc(
         summary="Get Dashen Bank exchange rates",
-        description="Returns latest rates scraped from Dashen Bank.",
+        description=(
+            "Returns latest rates scraped from Dashen Bank.\n\n"
+            "Example 200 response:\n"
+            f"{_json_block(EXAMPLE_DASHEN_RATES)}"
+        ),
         responses={200: "Rates returned successfully."},
     )
     @api.response(200, "Success", exchange_rates_response_model)
@@ -163,7 +294,11 @@ class DashenExchangeRatesResource(Resource):
 class BoaExchangeRatesResource(Resource):
     @api.doc(
         summary="Get Bank of Abyssinia exchange rates",
-        description="Returns latest rates scraped from Bank of Abyssinia.",
+        description=(
+            "Returns latest rates scraped from Bank of Abyssinia.\n\n"
+            "Example 200 response:\n"
+            f"{_json_block(EXAMPLE_BOA_RATES)}"
+        ),
         responses={200: "Rates returned successfully."},
     )
     @api.response(200, "Success", exchange_rates_response_model)
@@ -178,7 +313,13 @@ class CbeExchangeRatesResource(Resource):
         summary="Get CBE exchange rates",
         description=(
             "Returns CBE rates for the provided date. "
-            "If date is omitted, current date is used and upstream logic may fall back to previous day."
+            "If date is omitted, current date is used and upstream logic may fall back to previous day.\n\n"
+            "Example request:\n"
+            "`/cbe-exchange-rates?date=2026-04-24`\n\n"
+            "Example 200 response:\n"
+            f"{_json_block(EXAMPLE_CBE_RATES)}\n\n"
+            "Example 400 response:\n"
+            f"{_json_block({'error': 'Invalid date format. Use YYYY-MM-DD.'})}"
         ),
         responses={
             200: "Rates returned successfully.",
@@ -198,7 +339,11 @@ class CbeExchangeRatesResource(Resource):
 class CoopExchangeRatesResource(Resource):
     @api.doc(
         summary="Get Cooperative Bank of Oromia exchange rates",
-        description="Returns latest rates scraped from Cooperative Bank of Oromia.",
+        description=(
+            "Returns latest rates scraped from Cooperative Bank of Oromia.\n\n"
+            "Example 200 response:\n"
+            f"{_json_block(EXAMPLE_COOP_RATES)}"
+        ),
         responses={200: "Rates returned successfully."},
     )
     @api.response(200, "Success", exchange_rates_response_model)
@@ -210,7 +355,13 @@ class CoopExchangeRatesResource(Resource):
 class HibretExchangeRatesResource(Resource):
     @api.doc(
         summary="Get Hibret Bank exchange rates",
-        description="Returns latest rates scraped from Hibret Bank.",
+        description=(
+            "Returns latest rates scraped from Hibret Bank.\n\n"
+            "Example 200 response:\n"
+            f"{_json_block(EXAMPLE_HIBRET_RATES)}\n\n"
+            "Example 500 response:\n"
+            f"{_json_block(EXAMPLE_ERROR)}"
+        ),
         responses={
             200: "Rates returned successfully.",
             500: "Upstream scrape/API failure.",
@@ -226,7 +377,13 @@ class HibretExchangeRatesResource(Resource):
 class WegagenExchangeRatesResource(Resource):
     @api.doc(
         summary="Get Wegagen Bank exchange rates",
-        description="Returns latest rates fetched from Wegagen Bank source API.",
+        description=(
+            "Returns latest rates fetched from Wegagen Bank source API.\n\n"
+            "Example 200 response:\n"
+            f"{_json_block(EXAMPLE_WEGAGEN_RATES)}\n\n"
+            "Example 500 response:\n"
+            f"{_json_block({'error': 'Failed to fetch Wegagen Bank exchange rates'})}"
+        ),
         responses={
             200: "Rates returned successfully.",
             500: "Upstream scrape/API failure.",
@@ -245,7 +402,15 @@ class AwashExchangeRatesResource(Resource):
         summary="Get Awash Bank exchange rates",
         description=(
             "Returns Awash rates for the provided date. "
-            "If date is omitted, upstream default date behavior is applied."
+            "If date is omitted, upstream default date behavior is applied.\n\n"
+            "Example request:\n"
+            "`/awash-exchange-rates?date=2026-04-24`\n\n"
+            "Example 200 response:\n"
+            f"{_json_block(EXAMPLE_AWASH_RATES)}\n\n"
+            "Example 400 response:\n"
+            f"{_json_block({'error': 'Invalid date format. Use YYYY-MM-DD.'})}\n\n"
+            "Example 500 response:\n"
+            f"{_json_block({'error': 'Failed to fetch Awash Bank exchange rates'})}"
         ),
         responses={
             200: "Rates returned successfully.",
@@ -267,7 +432,13 @@ class AwashExchangeRatesResource(Resource):
 class NibExchangeRatesResource(Resource):
     @api.doc(
         summary="Get NIB Bank exchange rates",
-        description="Returns latest rates scraped from NIB Bank.",
+        description=(
+            "Returns latest rates scraped from NIB Bank.\n\n"
+            "Example 200 response:\n"
+            f"{_json_block(EXAMPLE_NIB_RATES)}\n\n"
+            "Example 500 response:\n"
+            f"{_json_block({'error': 'Failed to fetch NIB Bank exchange rates'})}"
+        ),
         responses={
             200: "Rates returned successfully.",
             500: "Upstream scrape/API failure.",
