@@ -48,9 +48,28 @@ def install_import_stubs():
                     },
                 }
 
+            class _Parser:
+                def add_argument(self, *_args, **_kwargs):
+                    return None
+
             def route(self, *_args, **_kwargs):
                 def decorator(cls):
                     return cls
+
+                return decorator
+
+            def parser(self):
+                return self._Parser()
+
+            def expect(self, *_args, **_kwargs):
+                def decorator(func):
+                    return func
+
+                return decorator
+
+            def doc(self, *_args, **_kwargs):
+                def decorator(func):
+                    return func
 
                 return decorator
 
