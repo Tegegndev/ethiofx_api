@@ -64,6 +64,8 @@ def install_import_stubs():
                     "info": {"title": "Ethiopian Bank Exchange Rates API"},
                     "paths": {
                         "/cbe-exchange-rates": {},
+                        "/api/v1/rates": {},
+                        "/api/v1/banks": {},
                     },
                 }
 

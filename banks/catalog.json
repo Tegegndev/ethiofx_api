@@ -1,0 +1,50 @@
+[
+  {
+    "short_name": "cbe",
+    "full_name": "Commercial Bank of Ethiopia",
+    "logo_url": "https://www.combanketh.et/assets/logo.png",
+    "source": "https://combanketh.et/exchange-rates"
+  },
+  {
+    "short_name": "boa",
+    "full_name": "Bank of Abyssinia",
+    "logo_url": "https://www.bankofabyssinia.com/wp-content/uploads/2020/09/logo.png",
+    "source": "https://www.bankofabyssinia.com/exchange-rate"
+  },
+  {
+    "short_name": "coop",
+    "full_name": "Cooperative Bank of Oromia",
+    "logo_url": "https://coopbankoromia.com.et/wp-content/uploads/2021/06/logo.png",
+    "source": "https://coopbankoromia.com.et/daily-exchange-rates/"
+  },
+  {
+    "short_name": "dashen",
+    "full_name": "Dashen Bank",
+    "logo_url": "https://dashenbanksc.com/wp-content/uploads/2021/06/logo.png",
+    "source": "https://dashenbanksc.com/exchange-rates/"
+  },
+  {
+    "short_name": "hibret",
+    "full_name": "Hibret Bank",
+    "logo_url": "https://hibretbank.com.et/wp-content/uploads/2021/06/logo.png",
+    "source": "https://hibretbank.com.et/"
+  },
+  {
+    "short_name": "wegagen",
+    "full_name": "Wegagen Bank",
+    "logo_url": "https://wegagenbanksc.com.et/wp-content/uploads/2022/11/logo.png",
+    "source": "https://wegagenbanksc.com.et/"
+  },
+  {
+    "short_name": "awash",
+    "full_name": "Awash Bank",
+    "logo_url": "https://awashbank.com/wp-content/uploads/2021/05/logo.png",
+    "source": "https://awashbank.com/exchange-historical/"
+  },
+  {
+    "short_name": "nib",
+    "full_name": "NIB International Bank",
+    "logo_url": "https://nibbanksc.com/wp-content/uploads/2021/06/logo.png",
+    "source": "https://nibbanksc.com/"
+  }
+]

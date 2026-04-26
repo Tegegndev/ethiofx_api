@@ -468,6 +468,7 @@ class ExchangeRateTests(unittest.TestCase):
         self.assertIn("SwaggerUIBundle", docs_html)
         self.assertEqual(spec["info"]["title"], "Ethiopian Bank Exchange Rates API")
         self.assertIn("/cbe-exchange-rates", spec["paths"])
+        self.assertIn("/api/v1/rates", spec["paths"])
         self.assertIn("/apidocs", index_page[0])
 
     def test_request_stats_file_counter_persists(self):
@@ -496,6 +497,46 @@ class ExchangeRateTests(unittest.TestCase):
             result = self.app.request_stats_endpoint()
 
         self.assertEqual(result["total_requests"], 9)
+
+    def test_get_single_bank_currency_rate_success(self):
+        with patch.object(
+            self.app,
+            "get_cbe_exchange_rates",
+            return_value={
+                "USD": {
+                    "currency_code": "USD",
+                    "name": "US DOLLAR",
+                    "buying": 57.8,
+                    "selling": 58.94,
+                }
+            },
+        ):
+            result = self.app.get_single_bank_currency_rate("cbe", "usd", "2026-04-26")
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["bank"], "Commercial Bank of Ethiopia")
+        self.assertEqual(result["currency"], "USD")
+        self.assertEqual(result["buying"], 57.8)
+        self.assertEqual(result["selling"], 58.94)
+        self.assertEqual(result["date"], "2026-04-26")
+
+    def test_get_single_bank_currency_rate_unknown_bank(self):
+        result = self.app.get_single_bank_currency_rate("unknown", "USD")
+        self.assertEqual(result, ({"status": "error", "message": "Unknown bank."}, 404))
+
+    def test_get_single_bank_currency_rate_currency_not_found(self):
+        with patch.object(self.app, "get_cbe_exchange_rates", return_value={"EUR": {"buying": 1, "selling": 2}}):
+            result = self.app.get_single_bank_currency_rate("cbe", "USD")
+
+        self.assertEqual(
+            result,
+            ({"status": "error", "message": "Currency USD not found for bank cbe."}, 404),
+        )
+
+    def test_banks_catalog_endpoint_shape(self):
+        response = self.app.banks_catalog_endpoint()
+        self.assertEqual(response["status"], "success")
+        self.assertTrue(any(bank["short_name"] == "cbe" for bank in response["banks"]))
 
 
 if __name__ == "__main__":

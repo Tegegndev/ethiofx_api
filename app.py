@@ -49,6 +49,7 @@ api = Api(
 REQUEST_STATS_FILE = Path(__file__).resolve().parent / "temp" / "request_stats.json"
 REQUEST_STATS_LOCK = Lock()
 TRACKING_EXCLUDED_PATHS = {"/request-stats"}
+BANKS_CATALOG_FILE = Path(__file__).resolve().parent / "banks" / "catalog.json"
 
 DATE_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -60,6 +61,36 @@ date_query_parser.add_argument(
     required=False,
     location="args",
     help="Target date in YYYY-MM-DD format.",
+)
+
+single_rate_query_parser = api.parser()
+single_rate_query_parser.add_argument(
+    "bank",
+    type=str,
+    required=True,
+    location="args",
+    help="Bank short name such as cbe, boa, coop, dashen, hibret, wegagen, awash, nib.",
+)
+single_rate_query_parser.add_argument(
+    "currency",
+    type=str,
+    required=False,
+    location="args",
+    help="Currency code, for example USD. You can also use ccy.",
+)
+single_rate_query_parser.add_argument(
+    "ccy",
+    type=str,
+    required=False,
+    location="args",
+    help="Alias for currency parameter.",
+)
+single_rate_query_parser.add_argument(
+    "date",
+    type=str,
+    required=False,
+    location="args",
+    help="Optional date in YYYY-MM-DD format.",
 )
 
 # Models are used for Swagger/OpenAPI documentation clarity.
@@ -86,6 +117,22 @@ exchange_rates_response_model = api.model(
 error_response_model = api.model(
     "ErrorResponse",
     {"error": fields.String(required=True, description="Normalized error message.")},
+)
+
+single_rate_response_model = api.model(
+    "SingleRateResponse",
+    {
+        "status": fields.String(description="success or error"),
+        "bank": fields.String(description="Full bank name."),
+        "bank_short_name": fields.String(description="Bank short name."),
+        "bank_logo_url": fields.String(description="Bank logo URL."),
+        "currency": fields.String(description="Requested currency code."),
+        "buying": fields.Float(description="Buying rate."),
+        "selling": fields.Float(description="Selling rate."),
+        "date": fields.String(description="Rate date in YYYY-MM-DD format."),
+        "source": fields.String(description="Bank source URL."),
+        "message": fields.String(description="Error message for failed lookups."),
+    },
 )
 
 
@@ -216,6 +263,93 @@ def _json_block(payload):
     return "```json\n" + json.dumps(payload, indent=2) + "\n```"
 
 
+def _default_banks_catalog():
+    return {
+        "cbe": {
+            "short_name": "cbe",
+            "full_name": "Commercial Bank of Ethiopia",
+            "logo_url": "https://www.combanketh.et/assets/logo.png",
+            "source": "https://combanketh.et/exchange-rates",
+        },
+        "boa": {
+            "short_name": "boa",
+            "full_name": "Bank of Abyssinia",
+            "logo_url": "https://www.bankofabyssinia.com/wp-content/uploads/2020/09/logo.png",
+            "source": "https://www.bankofabyssinia.com/exchange-rate",
+        },
+        "coop": {
+            "short_name": "coop",
+            "full_name": "Cooperative Bank of Oromia",
+            "logo_url": "https://coopbankoromia.com.et/wp-content/uploads/2021/06/logo.png",
+            "source": "https://coopbankoromia.com.et/daily-exchange-rates/",
+        },
+        "dashen": {
+            "short_name": "dashen",
+            "full_name": "Dashen Bank",
+            "logo_url": "https://dashenbanksc.com/wp-content/uploads/2021/06/logo.png",
+            "source": "https://dashenbanksc.com/exchange-rates/",
+        },
+        "hibret": {
+            "short_name": "hibret",
+            "full_name": "Hibret Bank",
+            "logo_url": "https://hibretbank.com.et/wp-content/uploads/2021/06/logo.png",
+            "source": "https://hibretbank.com.et/",
+        },
+        "wegagen": {
+            "short_name": "wegagen",
+            "full_name": "Wegagen Bank",
+            "logo_url": "https://wegagenbanksc.com.et/wp-content/uploads/2022/11/logo.png",
+            "source": "https://wegagenbanksc.com.et/",
+        },
+        "awash": {
+            "short_name": "awash",
+            "full_name": "Awash Bank",
+            "logo_url": "https://awashbank.com/wp-content/uploads/2021/05/logo.png",
+            "source": "https://awashbank.com/exchange-historical/",
+        },
+        "nib": {
+            "short_name": "nib",
+            "full_name": "NIB International Bank",
+            "logo_url": "https://nibbanksc.com/wp-content/uploads/2021/06/logo.png",
+            "source": "https://nibbanksc.com/",
+        },
+    }
+
+
+def _load_banks_catalog():
+    if not BANKS_CATALOG_FILE.exists():
+        return _default_banks_catalog()
+
+    try:
+        with BANKS_CATALOG_FILE.open("r", encoding="utf-8") as fp:
+            rows = json.load(fp)
+    except (json.JSONDecodeError, OSError):
+        logger.warning("Failed to read banks catalog file, using built-in defaults")
+        return _default_banks_catalog()
+
+    catalog = {}
+    if not isinstance(rows, list):
+        return _default_banks_catalog()
+
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        short_name = str(row.get("short_name", "")).strip().lower()
+        if not short_name:
+            continue
+        catalog[short_name] = {
+            "short_name": short_name,
+            "full_name": str(row.get("full_name", short_name)).strip(),
+            "logo_url": str(row.get("logo_url", "")).strip(),
+            "source": str(row.get("source", "")).strip(),
+        }
+
+    return catalog or _default_banks_catalog()
+
+
+BANKS_CATALOG = _load_banks_catalog()
+
+
 def _default_request_stats():
     return {
         "total_requests": 0,
@@ -262,6 +396,85 @@ def _increment_request_stats(path):
 
 def get_request_stats():
     return _load_request_stats()
+
+
+def get_banks_catalog():
+    return sorted(BANKS_CATALOG.values(), key=lambda item: item["short_name"])
+
+
+def _resolve_bank_metadata(bank_value):
+    if not bank_value:
+        return None
+
+    value = bank_value.strip().lower()
+    if value in BANKS_CATALOG:
+        return BANKS_CATALOG[value]
+
+    for bank in BANKS_CATALOG.values():
+        if bank["full_name"].strip().lower() == value:
+            return bank
+
+    return None
+
+
+def _bank_fetchers():
+    return {
+        "cbe": get_cbe_exchange_rates,
+        "boa": get_boa_exchange_rates,
+        "coop": get_coop_exchange_rates,
+        "dashen": get_dashen_exchange_rates,
+        "hibret": get_hibret_exchange_rates,
+        "wegagen": get_wegagen_exchange_rates,
+        "awash": get_awash_exchange_rates,
+        "nib": get_nib_exchange_rates,
+    }
+
+
+def get_single_bank_currency_rate(bank_value, currency_value, target_date=None):
+    bank = _resolve_bank_metadata(bank_value)
+    if not bank:
+        return {"status": "error", "message": "Unknown bank."}, 404
+
+    if not currency_value:
+        return {"status": "error", "message": "currency query parameter is required."}, 400
+
+    currency_code = currency_value.strip().upper()
+    fetcher = _bank_fetchers().get(bank["short_name"])
+    if not fetcher:
+        return {"status": "error", "message": "Bank is not configured."}, 500
+
+    if bank["short_name"] in {"cbe", "awash"}:
+        rates = fetcher(target_date)
+    else:
+        rates = fetcher()
+
+    if isinstance(rates, tuple):
+        payload, status = rates
+        message = payload.get("error", "Failed to fetch rates") if isinstance(payload, dict) else "Failed to fetch rates"
+        return {"status": "error", "message": message}, status
+
+    if not isinstance(rates, dict):
+        return {"status": "error", "message": "Unexpected bank response shape."}, 500
+
+    rate = rates.get(currency_code)
+    if not rate:
+        return {
+            "status": "error",
+            "message": f"Currency {currency_code} not found for bank {bank['short_name']}.",
+        }, 404
+
+    date_value = target_date or datetime.now(timezone.utc).date().isoformat()
+    return {
+        "status": "success",
+        "bank": bank["full_name"],
+        "bank_short_name": bank["short_name"],
+        "bank_logo_url": bank["logo_url"],
+        "currency": currency_code,
+        "buying": rate.get("buying"),
+        "selling": rate.get("selling"),
+        "date": date_value,
+        "source": bank["source"],
+    }
 
 
 @app.before_request
@@ -381,6 +594,50 @@ def get_nib_exchange_rates():
 @app.route("/request-stats", methods=["GET"])
 def request_stats_endpoint():
     return get_request_stats()
+
+
+def banks_catalog_endpoint():
+    return {"status": "success", "banks": get_banks_catalog()}
+
+
+def single_rate_endpoint():
+    bank = request.args.get("bank")
+    currency = request.args.get("currency") or request.args.get("ccy")
+    target_date = request.args.get("date")
+
+    if target_date and not DATE_REGEX.match(target_date):
+        return {"status": "error", "message": "Invalid date format. Use YYYY-MM-DD."}, 400
+
+    result = get_single_bank_currency_rate(bank, currency, target_date)
+    return result
+
+
+@api.route("/api/v1/banks")
+class BanksCatalogResource(Resource):
+    @api.doc(
+        summary="List supported banks",
+        description="Returns bank short name, full name, logo URL, and source URL.",
+    )
+    def get(self):
+        return banks_catalog_endpoint()
+
+
+@api.route("/api/v1/rates")
+class SingleRateLookupResource(Resource):
+    @api.expect(single_rate_query_parser)
+    @api.doc(
+        summary="Get one bank/currency rate",
+        description=(
+            "Returns a single currency rate by bank and currency code.\n\n"
+            "Example request:\n"
+            "`/api/v1/rates?bank=cbe&currency=USD`"
+        ),
+    )
+    @api.response(200, "Success", single_rate_response_model)
+    @api.response(400, "Invalid query", single_rate_response_model)
+    @api.response(404, "Not found", single_rate_response_model)
+    def get(self):
+        return single_rate_endpoint()
 
 
 @api.route("/dashen-exchange-rates")
