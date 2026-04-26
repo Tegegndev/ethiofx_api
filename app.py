@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 
-from flask import Flask, request
+from flask import Flask, render_template, request
 
 try:
     from flask_restplus import Api, Resource, fields
@@ -576,24 +576,12 @@ def swagger_ui():
 
 @app.route("/")
 def index():
-    return """
-    <h1>Welcome to the Ethiopian Bank Exchange Rates API</h1>
-    <p>Available endpoints:</p>
-    <ul>
-        <li><a href="/apidocs">/apidocs</a> - Swagger UI documentation</li>
-        <li><a href="/request-stats">/request-stats</a> - Shows total tracked requests (saved in temp/request_stats.json)</li>
-        <li><a href="/cbe-exchange-rates">/cbe-exchange-rates</a> - Fetches exchange rates from CBE API</li>
-        <li><a href="/cbe-exchange-rates?date=2026-04-24">/cbe-exchange-rates?date=YYYY-MM-DD</a> - Fetches CBE rates for a specific date</li>
-        <li><a href="/boa-exchange-rates">/boa-exchange-rates</a> - Scrapes exchange rates from Bank of Abyssinia</li>
-        <li><a href="/coop-exchange-rates">/coop-exchange-rates</a> - Scrapes exchange rates from Cooperative Bank of Oromia</li>
-        <li><a href="/dashen-exchange-rates">/dashen-exchange-rates</a> - Scrapes exchange rates from Dashen Bank</li>
-        <li><a href="/hibret-exchange-rates">/hibret-exchange-rates</a> - Scrapes exchange rates from Hibret Bank</li>
-        <li><a href="/wegagen-exchange-rates">/wegagen-exchange-rates</a> - Fetches exchange rates from Wegagen</li>
-        <li><a href="/awash-exchange-rates">/awash-exchange-rates</a> - Fetches exchange rates from Awash Bank</li>
-        <li><a href="/awash-exchange-rates?date=2026-04-24">/awash-exchange-rates?date=YYYY-MM-DD</a> - Fetches Awash rates for a specific date</li>
-        <li><a href="/nib-exchange-rates">/nib-exchange-rates</a> - Scrapes exchange rates from NIB Bank</li>
-    </ul>
-    """, 200
+    return render_template("index.html"), 200
+
+
+# Flask-RESTPlus/RESTX also registers a "/" endpoint named "root".
+# Re-map it to our index view so the homepage does not return 404.
+app.view_functions["root"] = index
 
 
 if __name__ == "__main__":

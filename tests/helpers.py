@@ -10,9 +10,12 @@ def install_import_stubs():
         class Flask:
             def __init__(self, name):
                 self.name = name
+                self.view_functions = {}
 
             def route(self, *_args, **_kwargs):
                 def decorator(func):
+                    endpoint = _kwargs.get("endpoint", func.__name__)
+                    self.view_functions[endpoint] = func
                     return func
 
                 return decorator
@@ -23,6 +26,9 @@ def install_import_stubs():
         def jsonify(value):
             return value
 
+        def render_template(_name, *_args, **_kwargs):
+            return '<a href="/apidocs">/apidocs</a>'
+
         def url_for(*_args, **_kwargs):
             return ""
 
@@ -31,6 +37,7 @@ def install_import_stubs():
 
         flask_stub.Flask = Flask
         flask_stub.jsonify = jsonify
+        flask_stub.render_template = render_template
         flask_stub.url_for = url_for
         flask_stub.request = _Request()
         sys.modules["flask"] = flask_stub
