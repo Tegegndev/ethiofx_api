@@ -31,38 +31,38 @@ app = Flask(__name__)
 @app.route('/dashen-exchange-rates', methods=['GET'])
 def get_dashen_exchange_rates():
     result = fetch_dashen_exchange_rates()
-    return jsonify(json.loads(result))
+    return json.loads(result)
 
 @app.route('/boa-exchange-rates', methods=['GET'])
 def get_boa_exchange_rates():
     result = scrape_boa_exchange_rates()
-    return jsonify(result)
+    return result
 
 @app.route('/cbe-exchange-rates', methods=['GET'])
 def get_cbe_exchange_rates():
     result = fetch_cbe_exchange_rates()
-    return jsonify(result)
+    return result
 
 @app.route('/coop-exchange-rates', methods=['GET'])
 def get_coop_exchange_rates():
     result = scrape_coop_exchange_rates()
-    return jsonify(result)
+    return result
 
 @app.route('/hibret-exchange-rates', methods=['GET'])
 def get_hibret_exchange_rates():
     result = scrape_hibret_exchange_rates()
     if "error" in result:
         logger.error("Hibret endpoint returning error: %s", result["error"])
-        return jsonify({"error": "Failed to fetch Hibret Bank exchange rates"}), 500
-    return jsonify(result)
+        return {"error": "Failed to fetch Hibret Bank exchange rates"}, 500
+    return result
 
 @app.route('/wegagen-exchange-rates', methods=['GET'])
 def get_wegagen_exchange_rates():
     result = get_wegagen_rates()
     if "error" in result:
         logger.error("Wegagen endpoint returning error: %s", result["error"])
-        return jsonify({"error": "Failed to fetch Wegagen Bank exchange rates"}), 500
-    return jsonify(result)
+        return {"error": "Failed to fetch Wegagen Bank exchange rates"}, 500
+    return result
 
 # awash
 @app.route('/awash-exchange-rates', methods=['GET'])
@@ -70,16 +70,16 @@ def get_awash_exchange_rates():
     result = get_awash_rates()
     if "error" in result:
         logger.error("Awash endpoint returning error: %s", result["error"])
-        return jsonify({"error": "Failed to fetch Awash Bank exchange rates"}), 500
-    return jsonify(result)
+        return {"error": "Failed to fetch Awash Bank exchange rates"}, 500
+    return result
 
 @app.route('/nib-exchange-rates', methods=['GET'])
 def get_nib_exchange_rates():
     result = scrape_nib_rates()
     if "error" in result:
         logger.error("NIB endpoint returning error: %s", result["error"])
-        return jsonify({"error": "Failed to fetch NIB Bank exchange rates"}), 500
-    return jsonify(result)
+        return {"error": "Failed to fetch NIB Bank exchange rates"}, 500
+    return result
 
 @app.route('/')
 def index():

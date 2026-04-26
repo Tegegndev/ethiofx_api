@@ -178,6 +178,7 @@ class ExchangeRateTests(unittest.TestCase):
         cls.nib = modules["banks.nib"]
         cls.hibret = modules["banks.hibret"]
         cls.wegagen = modules["banks.wegagen"]
+        cls.dashen = modules["banks.dashen"]
 
     def test_fetch_cbe_exchange_rates_normalizes_response(self):
         mock_response = Mock()
@@ -217,8 +218,8 @@ class ExchangeRateTests(unittest.TestCase):
         mock_response = Mock(text="<html></html>")
         mock_response.raise_for_status.return_value = None
 
-        with patch.object(self.app.requests, "get", return_value=mock_response), patch.object(
-            self.app, "BeautifulSoup", return_value=FakeDashenSoup()
+        with patch.object(self.dashen.requests, "get", return_value=mock_response), patch.object(
+            self.dashen, "BeautifulSoup", return_value=FakeDashenSoup()
         ):
             result = json.loads(self.app.fetch_dashen_exchange_rates())
 

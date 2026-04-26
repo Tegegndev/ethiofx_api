@@ -40,11 +40,12 @@ def import_modules():
 
     loaded = {}
     for module_name in [
-        "app",
         "banks.awash",
         "banks.nib",
         "banks.hibret",
         "banks.wegagen",
+        "banks.dashen",
+        "app",
     ]:
         sys.modules.pop(module_name, None)
         loaded[module_name] = importlib.import_module(module_name)
