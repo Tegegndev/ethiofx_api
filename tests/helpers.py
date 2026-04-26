@@ -35,6 +35,15 @@ def install_import_stubs():
     if "flask_restplus" not in sys.modules:
         frp_stub = types.ModuleType("flask_restplus")
 
+        class _Field:
+            def __init__(self, *_args, **_kwargs):
+                pass
+
+        class _FieldsModule:
+            String = _Field
+            Float = _Field
+            Nested = _Field
+
         class Resource:
             pass
 
@@ -61,7 +70,16 @@ def install_import_stubs():
             def parser(self):
                 return self._Parser()
 
+            def model(self, _name, model):
+                return model
+
             def expect(self, *_args, **_kwargs):
+                def decorator(func):
+                    return func
+
+                return decorator
+
+            def response(self, *_args, **_kwargs):
                 def decorator(func):
                     return func
 
@@ -75,6 +93,7 @@ def install_import_stubs():
 
         frp_stub.Api = Api
         frp_stub.Resource = Resource
+        frp_stub.fields = _FieldsModule()
         sys.modules["flask_restplus"] = frp_stub
 
     if "bs4" not in sys.modules:
