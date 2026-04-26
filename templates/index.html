@@ -1,16 +1,1170 @@
-<h1>Welcome to the Ethiopian Bank Exchange Rates API</h1>
-<p>Available endpoints:</p>
-<ul>
-    <li><a href="/apidocs">/apidocs</a> - Swagger UI documentation</li>
-    <li><a href="/request-stats">/request-stats</a> - Shows total tracked requests (saved in temp/request_stats.json)</li>
-    <li><a href="/cbe-exchange-rates">/cbe-exchange-rates</a> - Fetches exchange rates from CBE API</li>
-    <li><a href="/cbe-exchange-rates?date=2026-04-24">/cbe-exchange-rates?date=YYYY-MM-DD</a> - Fetches CBE rates for a specific date</li>
-    <li><a href="/boa-exchange-rates">/boa-exchange-rates</a> - Scrapes exchange rates from Bank of Abyssinia</li>
-    <li><a href="/coop-exchange-rates">/coop-exchange-rates</a> - Scrapes exchange rates from Cooperative Bank of Oromia</li>
-    <li><a href="/dashen-exchange-rates">/dashen-exchange-rates</a> - Scrapes exchange rates from Dashen Bank</li>
-    <li><a href="/hibret-exchange-rates">/hibret-exchange-rates</a> - Scrapes exchange rates from Hibret Bank</li>
-    <li><a href="/wegagen-exchange-rates">/wegagen-exchange-rates</a> - Fetches exchange rates from Wegagen</li>
-    <li><a href="/awash-exchange-rates">/awash-exchange-rates</a> - Fetches exchange rates from Awash Bank</li>
-    <li><a href="/awash-exchange-rates?date=2026-04-24">/awash-exchange-rates?date=YYYY-MM-DD</a> - Fetches Awash rates for a specific date</li>
-    <li><a href="/nib-exchange-rates">/nib-exchange-rates</a> - Scrapes exchange rates from NIB Bank</li>
-</ul>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EthioForex API — Live Bank Exchange Rates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --bg2: #0d1219;
+    --surface: #111820;
+    --border: rgba(255,255,255,0.07);
+    --green: #00e5a0;
+    --green2: #00b87d;
+    --red: #ff4d6a;
+    --gold: #f5c842;
+    --muted: #4a5568;
+    --text: #e2e8f0;
+    --text-dim: #718096;
+    --accent: #00e5a0;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ─── NOISE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.35;
+  }
+
+  /* ─── GRID BG ─── */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── GLOW ORBS ─── */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.12;
+  }
+  .orb-1 { width: 600px; height: 600px; background: #00e5a0; top: -200px; left: -200px; animation: drift1 18s ease-in-out infinite; }
+  .orb-2 { width: 500px; height: 500px; background: #f5c842; bottom: -150px; right: -150px; animation: drift2 22s ease-in-out infinite; }
+  .orb-3 { width: 400px; height: 400px; background: #ff4d6a; top: 40%; left: 50%; transform: translate(-50%,-50%); animation: drift3 15s ease-in-out infinite; opacity: 0.06; }
+
+  @keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,-60px)} }
+  @keyframes drift3 { 0%,100%{transform:translate(-50%,-50%)} 50%{transform:translate(-45%,-55%)} }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 48px;
+    background: rgba(8,12,16,0.8);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .logo-text span { color: var(--green); }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--green); }
+
+  .nav-cta {
+    background: var(--green);
+    color: #080c10 !important;
+    font-weight: 700 !important;
+    padding: 8px 20px;
+    border-radius: 6px;
+    transition: background 0.2s, transform 0.1s !important;
+  }
+  .nav-cta:hover { background: var(--green2) !important; transform: translateY(-1px); }
+
+  /* ─── HERO ─── */
+  .hero {
+    position: relative;
+    z-index: 10;
+    padding: 160px 48px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,229,160,0.08);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 1px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .pulse-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(0,229,160,0); }
+  }
+
+  .hero h1 {
+    font-size: clamp(48px, 7vw, 96px);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -3px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .hero h1 .line-green { color: var(--green); }
+  .hero h1 .line-dim { color: var(--muted); }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 540px;
+    line-height: 1.65;
+    margin-bottom: 48px;
+    font-weight: 400;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--green);
+    color: #080c10;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary:hover {
+    background: var(--green2);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0,229,160,0.25);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+
+  /* ─── TERMINAL SNIPPET ─── */
+  .hero-terminal {
+    margin-top: 64px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    animation: fadeUp 0.6s 0.4s ease both;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.4);
+  }
+
+  .term-bar {
+    background: rgba(255,255,255,0.04);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .term-dots { display: flex; gap: 6px; }
+  .term-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .term-dot:nth-child(1) { background: #ff5f57; }
+  .term-dot:nth-child(2) { background: #febc2e; }
+  .term-dot:nth-child(3) { background: #28c840; }
+
+  .term-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+
+  .term-body {
+    padding: 24px 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 2;
+  }
+
+  .term-comment { color: #4a5568; }
+  .term-key { color: var(--gold); }
+  .term-val { color: var(--green); }
+  .term-str { color: #fc8181; }
+  .term-num { color: #90cdf4; }
+  .term-url { color: var(--green); text-decoration: underline; opacity: 0.8; }
+  .term-prompt { color: var(--text-dim); }
+
+  /* ─── STATS BAR ─── */
+  .stats-bar {
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(17,24,32,0.6);
+    backdrop-filter: blur(10px);
+    padding: 20px 48px;
+    display: flex;
+    align-items: center;
+    gap: 48px;
+    overflow: hidden;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .stat-divider { width: 1px; height: 40px; background: var(--border); flex-shrink: 0; }
+
+  /* ─── TICKER ─── */
+  .ticker-wrap {
+    position: relative;
+    z-index: 10;
+    background: rgba(0,229,160,0.05);
+    border-bottom: 1px solid rgba(0,229,160,0.1);
+    overflow: hidden;
+    padding: 10px 0;
+  }
+
+  .ticker-inner {
+    display: flex;
+    animation: ticker 35s linear infinite;
+    width: max-content;
+  }
+
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    white-space: nowrap;
+    border-right: 1px solid var(--border);
+  }
+
+  .ticker-up { color: var(--green); }
+  .ticker-down { color: var(--red); }
+
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* ─── MAIN CONTENT ─── */
+  .section {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 48px;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+  }
+
+  .section-sub {
+    color: var(--text-dim);
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 500px;
+    margin-bottom: 48px;
+  }
+
+  /* ─── RATE CARDS ─── */
+  .rates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .rate-card {
+    background: var(--bg2);
+    padding: 20px 24px;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .rate-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+
+  .rate-card:hover { background: var(--surface); }
+  .rate-card:hover::before { transform: scaleX(1); }
+
+  .bank-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .bank-logo {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bank-name {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .bank-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .rate-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .rate-row:last-child { border-bottom: none; }
+
+  .rate-flag {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .rate-currency {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  .rate-buy, .rate-sell, .rate-mid {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-align: right;
+  }
+
+  .rate-buy { color: var(--green); }
+  .rate-sell { color: var(--red); }
+  .rate-mid { color: var(--text-dim); font-size: 10px; }
+
+  .rate-header-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .rate-col-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: right;
+  }
+
+  .rate-col-label:nth-child(2) { text-align: left; }
+
+  .updated-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 12px;
+  }
+
+  .live-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  /* ─── ENDPOINTS ─── */
+  .endpoints-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .endpoint-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: all 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .endpoint-card:hover {
+    border-color: rgba(0,229,160,0.3);
+    background: rgba(0,229,160,0.03);
+    transform: translateX(4px);
+  }
+
+  .method-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 5px;
+    min-width: 52px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .get { background: rgba(0,229,160,0.12); color: var(--green); border: 1px solid rgba(0,229,160,0.25); }
+  .post { background: rgba(245,200,66,0.12); color: var(--gold); border: 1px solid rgba(245,200,66,0.25); }
+
+  .ep-path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .ep-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    flex: 2;
+  }
+
+  /* ─── API SWAGGER CTA ─── */
+  .swagger-cta {
+    position: relative;
+    z-index: 10;
+    background: linear-gradient(135deg, rgba(0,229,160,0.06) 0%, rgba(0,0,0,0) 60%);
+    border-top: 1px solid rgba(0,229,160,0.1);
+    border-bottom: 1px solid var(--border);
+    padding: 80px 48px;
+    text-align: center;
+  }
+
+  .swagger-card {
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 16px;
+    padding: 48px;
+    box-shadow: 0 0 80px rgba(0,229,160,0.06);
+  }
+
+  .swagger-icon {
+    width: 64px; height: 64px;
+    background: rgba(0,229,160,0.1);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+  }
+
+  .swagger-card h2 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+
+  .swagger-card p {
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  .swagger-url {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--green);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .copy-btn {
+    background: rgba(0,229,160,0.1);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { background: rgba(0,229,160,0.2); }
+
+  /* ─── FEATURES ─── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .feature-card {
+    background: var(--bg2);
+    padding: 32px;
+    transition: background 0.2s;
+  }
+
+  .feature-card:hover { background: var(--surface); }
+
+  .feature-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+
+  .feature-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 8px;
+  }
+
+  .feature-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.65;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid var(--border);
+    padding: 32px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    nav { padding: 14px 20px; }
+    .nav-links { display: none; }
+    .hero { padding: 120px 20px 60px; }
+    .hero h1 { letter-spacing: -2px; }
+    .section { padding: 60px 20px; }
+    .stats-bar { padding: 16px 20px; gap: 24px; flex-wrap: wrap; }
+    .features-grid { grid-template-columns: 1fr; }
+    .rates-grid { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+    .swagger-cta { padding: 60px 20px; }
+    .swagger-card { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="logo-icon">₿</div>
+    <span class="logo-text">Ethio<span>Forex</span><span style="color:var(--text-dim);font-weight:400">API</span></span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#rates">Rates</a></li>
+    <li><a href="#endpoints">Endpoints</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="/apidocs" class="nav-cta">View Swagger Docs →</a></li>
+  </ul>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="ticker">
+    <!-- populated by JS -->
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge"><div class="pulse-dot"></div> LIVE · 8 BANKS · UPDATED EVERY 6H</div>
+  <h1>
+    Ethiopian<br>
+    <span class="line-green">Forex Rates</span><br>
+    <span class="line-dim">REST API</span>
+  </h1>
+  <p class="hero-sub">
+    Real-time foreign exchange rates scraped and normalized from all major Ethiopian commercial banks. JSON API, zero signup, daily snapshots.
+  </p>
+  <div class="hero-actions">
+    <a href="/apidocs" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      View Swagger Docs
+    </a>
+    <a href="#rates" class="btn-secondary">
+      See live rates ↓
+    </a>
+  </div>
+
+  <div class="hero-terminal">
+    <div class="term-bar">
+      <div class="term-dots">
+        <div class="term-dot"></div><div class="term-dot"></div><div class="term-dot"></div>
+      </div>
+      <span class="term-title">GET /api/v1/rates — 200 OK · 48ms</span>
+    </div>
+    <div class="term-body">
+      <div><span class="term-prompt">$ </span><span style="color:#90cdf4">curl</span> <span class="term-url">https://ethioforex.api/api/v1/rates?bank=cbe&currency=USD</span></div>
+      <div>&nbsp;</div>
+      <div>{</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"status"</span>: <span class="term-str">"success"</span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"bank"</span>: <span class="term-str">"Commercial Bank of Ethiopia"</span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"currency"</span>: <span class="term-str">"USD"</span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"buying"</span>: <span class="term-num" id="hero-buy">57.82</span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"selling"</span>: <span class="term-num" id="hero-sell">58.94</span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"date"</span>: <span class="term-str" id="hero-date"></span>,</div>
+      <div>&nbsp;&nbsp;<span class="term-key">"source"</span>: <span class="term-str">"cbe.et/forex"</span></div>
+      <div>}</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-label">Banks Covered</div>
+    <div class="stat-value">8</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-label">Currencies</div>
+    <div class="stat-value">12+</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-label">Update Freq</div>
+    <div class="stat-value">6H</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-label">API Latency</div>
+    <div class="stat-value">&lt;60ms</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-label">Uptime</div>
+    <div class="stat-value">99.8%</div>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <div class="stat-label">Auth Required</div>
+    <div class="stat-value" style="color:var(--gold);font-size:14px;padding-top:3px">NO</div>
+  </div>
+</div>
+
+<!-- RATES SECTION -->
+<section id="rates" class="section">
+  <div class="section-label">// live exchange rates</div>
+  <h2 class="section-title">Today's Forex<br>by Bank</h2>
+  <p class="section-sub">All rates in Ethiopian Birr (ETB). Buying and selling rates fetched daily from each bank's official forex portal.</p>
+
+  <div class="rates-grid" id="rates-grid">
+    <!-- populated by JS -->
+  </div>
+</section>
+
+<!-- ENDPOINTS SECTION -->
+<section id="endpoints" class="section" style="padding-top:0">
+  <div class="section-label">// api reference</div>
+  <h2 class="section-title">Endpoints</h2>
+  <p class="section-sub">RESTful JSON API. Base URL: <span style="font-family:'JetBrains Mono',monospace;color:var(--green);font-size:14px">https://ethioforex.api</span></p>
+
+  <div class="endpoints-grid">
+    <a href="/apidocs" class="endpoint-card fade-in">
+      <span class="method-badge get">GET</span>
+      <span class="ep-path">/api/v1/rates</span>
+      <span class="ep-desc">All banks, all currencies — current snapshot</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="/apidocs" class="endpoint-card fade-in">
+      <span class="method-badge get">GET</span>
+      <span class="ep-path">/api/v1/rates/{bank}</span>
+      <span class="ep-desc">Rates for a single bank (e.g. cbe, dashen, awash)</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="/apidocs" class="endpoint-card fade-in">
+      <span class="method-badge get">GET</span>
+      <span class="ep-path">/api/v1/rates/{bank}/{currency}</span>
+      <span class="ep-desc">Single rate pair — e.g. /cbe/USD</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="/apidocs" class="endpoint-card fade-in">
+      <span class="method-badge get">GET</span>
+      <span class="ep-path">/api/v1/history/{bank}/{currency}</span>
+      <span class="ep-desc">30-day historical rates for a bank/currency pair</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="/apidocs" class="endpoint-card fade-in">
+      <span class="method-badge get">GET</span>
+      <span class="ep-path">/api/v1/compare/{currency}</span>
+      <span class="ep-desc">Compare a currency across all 8 banks side-by-side</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="/apidocs" class="endpoint-card fade-in">
+      <span class="method-badge get">GET</span>
+      <span class="ep-path">/api/v1/banks</span>
+      <span class="ep-desc">List supported banks with slugs and metadata</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="/apidocs" class="endpoint-card fade-in" style="opacity:0.55;pointer-events:none">
+      <span class="method-badge post">POST</span>
+      <span class="ep-path">/api/v1/subscribe/webhook</span>
+      <span class="ep-desc">Register a webhook URL for rate change alerts — <span style="color:var(--gold)">coming soon</span></span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- SWAGGER CTA -->
+<div class="swagger-cta" id="docs">
+  <div class="swagger-card fade-in">
+    <div class="swagger-icon">📖</div>
+    <h2>Interactive API Docs</h2>
+    <p>Explore every endpoint, inspect schemas, and run live requests directly from the browser. Powered by Swagger UI at <code style="color:var(--green);font-family:'JetBrains Mono',monospace">/apidocs</code>.</p>
+    <div class="swagger-url">
+      <span id="swagger-url-text">https://ethioforex.api/apidocs</span>
+      <button class="copy-btn" onclick="copySwagger()">COPY</button>
+    </div>
+    <a href="/apidocs" class="btn-primary" style="width:100%;justify-content:center;font-size:14px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      View Swagger Docs — /apidocs
+    </a>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features" class="section">
+  <div class="section-label">// why use this api</div>
+  <h2 class="section-title fade-in">Built for<br>Developers</h2>
+  <p class="section-sub fade-in">Everything you need to integrate Ethiopian forex data into your apps, bots, or dashboards.</p>
+
+  <div class="features-grid">
+    <div class="feature-card fade-in">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Zero Auth Friction</div>
+      <div class="feature-desc">No API keys, no OAuth dance. Hit the endpoint and get JSON back. Rate-limited per IP.</div>
+    </div>
+    <div class="feature-card fade-in">
+      <div class="feature-icon">🏦</div>
+      <div class="feature-title">8 Banks, One Call</div>
+      <div class="feature-desc">Abyssinia, CBE, Cooperative Bank of Oromia, Dashen, NIB, Hibret, Awash, and Wegagen.</div>
+    </div>
+    <div class="feature-card fade-in">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Historical Data</div>
+      <div class="feature-desc">30-day rate history for trend analysis, financial modeling, or reporting dashboards.</div>
+    </div>
+    <div class="feature-card fade-in">
+      <div class="feature-icon">🔄</div>
+      <div class="feature-title">6-Hour Refresh</div>
+      <div class="feature-desc">Rates scraped at 06:00, 12:00, 18:00 and 24:00 EAT directly from bank portals.</div>
+    </div>
+    <div class="feature-card fade-in">
+      <div class="feature-icon">🌐</div>
+      <div class="feature-title">12+ Currencies</div>
+      <div class="feature-desc">USD, EUR, GBP, SAR, AED, CHF, CNY, JPY, CAD, SEK, DKK, NOK and more.</div>
+    </div>
+    <div class="feature-card fade-in">
+      <div class="feature-icon">📑</div>
+      <div class="feature-title">OpenAPI 3.0 Spec</div>
+      <div class="feature-desc">Full Swagger docs at /apidocs. Import the spec into Postman or generate SDK clients automatically.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>EthioForex API · Ethiopia 🇪🇹 · <span id="footer-year"></span></span>
+  <span style="display:flex;gap:24px">
+    <a href="/apidocs" style="color:var(--text-dim);text-decoration:none">docs</a>
+    <a href="#rates" style="color:var(--text-dim);text-decoration:none">rates</a>
+    <a href="mailto:api@ethioforex.api" style="color:var(--text-dim);text-decoration:none">contact</a>
+  </span>
+  <span>Data sourced from public bank portals. Not financial advice.</span>
+</footer>
+
+<script>
+// ─── DATA ───
+const today = new Date().toLocaleDateString('en-ET', {year:'numeric',month:'short',day:'2-digit'});
+document.getElementById('footer-year').textContent = new Date().getFullYear();
+document.getElementById('hero-date').textContent = new Date().toISOString().split('T')[0];
+
+const banks = [
+  {
+    name: "Abyssinia Bank", code: "ABY", slug: "abyssinia",
+    color: "#1a6b3c", bg: "#0d3d21", text: "#4ade80",
+    logo: "🦁",
+    rates: [
+      { flag:"🇺🇸", currency:"USD", buy: 57.45, sell: 58.57 },
+      { flag:"🇪🇺", currency:"EUR", buy: 62.10, sell: 63.33 },
+      { flag:"🇬🇧", currency:"GBP", buy: 73.21, sell: 74.68 },
+      { flag:"🇸🇦", currency:"SAR", buy: 15.30, sell: 15.61 },
+    ]
+  },
+  {
+    name: "Commercial Bank of Ethiopia", code: "CBE", slug: "cbe",
+    color: "#1d4ed8", bg: "#0d1f4d", text: "#60a5fa",
+    logo: "🏛️",
+    rates: [
+      { flag:"🇺🇸", currency:"USD", buy: 57.82, sell: 58.94 },
+      { flag:"🇪🇺", currency:"EUR", buy: 62.55, sell: 63.80 },
+      { flag:"🇬🇧", currency:"GBP", buy: 73.90, sell: 75.24 },
+      { flag:"🇦🇪", currency:"AED", buy: 15.74, sell: 16.04 },
+    ]
+  },
+  {
+    name: "Cooperative Bank of Oromia", code: "COOP", slug: "coopbank",
+    color: "#92400e", bg: "#3d1a06", text: "#fbbf24",
+    logo: "🌿",
+    rates: [
+      { flag:"🇺🇸", currency:"USD", buy: 57.30, sell: 58.40 },
+      { flag:"🇪🇺", currency:"EUR", buy: 61.88, sell: 63.05 },
+      { flag:"🇬🇧", currency:"GBP", buy: 72.95, sell: 74.35 },
+      { flag:"🇸🇦", currency:"SAR", buy: 15.27, sell: 15.57 },
+    ]
+  },
+  {
+    name: "Dashen Bank", code: "DSH", slug: "dashen",
+    color: "#7c3aed", bg: "#2d1a5e", text: "#a78bfa",
+    logo: "⛰️",
+    rates: [
+      { flag:"🇺🇸", currency:"USD", buy: 57.60, sell: 58.72 },
+      { flag:"🇪🇺", currency:"EUR", buy: 62.30, sell: 63.56 },
+      { flag:"🇬🇧", currency:"GBP", buy: 73.50, sell: 74.90 },
+      { flag:"🇨🇭", currency:"CHF", buy: 65.10, sell: 66.40 },
+    ]
+  },
+  {
+    name: "NIB International Bank", code: "NIB", slug: "nib",
+    color: "#0e7490", bg: "#062d3a", text: "#22d3ee",
+    logo: "🌊",
+    rates: [
+      { flag:"🇺🇸", currency:"USD", buy: 57.52, sell: 58.64 },
+      { flag:"🇪🇺", currency:"EUR", buy: 62.18, sell: 63.42 },
+      { flag:"🇬🇧", currency:"GBP", buy: 73.35, sell: 74.75 },
+      { flag:"🇯🇵", currency:"JPY", buy: 0.3885, sell: 0.3962 },
+    ]
+  },
+  {
+    name: "Hibret Bank", code: "HIB", slug: "hibret",
+    color: "#be185d", bg: "#4a0726", text: "#f472b6",
+    logo: "🤝",
+    rates: [
+      { flag:"🇺🇸", currency:"USD", buy: 57.40, sell: 58.50 },
+      { flag:"🇪🇺", currency:"EUR", buy: 62.00, sell: 63.25 },
+      { flag:"🇬🇧", currency:"GBP", buy: 73.10, sell: 74.50 },
+      { flag:"🇨🇳", currency:"CNY", buy: 7.95, sell: 8.10 },
+    ]
+  },
+  {
+    name: "Awash Bank", code: "AWB", slug: "awash",
+    color: "#b45309", bg: "#3d1c02", text: "#fb923c",
+    logo: "🌅",
+    rates: [
+      { flag:"🇺🇸", currency:"USD", buy: 57.68, sell: 58.80 },
+      { flag:"🇪🇺", currency:"EUR", buy: 62.40, sell: 63.65 },
+      { flag:"🇬🇧", currency:"GBP", buy: 73.60, sell: 75.02 },
+      { flag:"🇦🇪", currency:"AED", buy: 15.70, sell: 16.00 },
+    ]
+  },
+  {
+    name: "Wegagen Bank", code: "WGG", slug: "wegagen",
+    color: "#065f46", bg: "#022c21", text: "#34d399",
+    logo: "🌾",
+    rates: [
+      { flag:"🇺🇸", currency:"USD", buy: 57.35, sell: 58.45 },
+      { flag:"🇪🇺", currency:"EUR", buy: 61.95, sell: 63.18 },
+      { flag:"🇬🇧", currency:"GBP", buy: 73.05, sell: 74.44 },
+      { flag:"🇸🇦", currency:"SAR", buy: 15.28, sell: 15.59 },
+    ]
+  }
+];
+
+// ─── RENDER RATE CARDS ───
+function renderRates() {
+  const grid = document.getElementById('rates-grid');
+  grid.innerHTML = banks.map(bank => `
+    <div class="rate-card fade-in">
+      <div class="bank-header">
+        <div class="bank-logo" style="background:${bank.bg};color:${bank.text};border:1px solid ${bank.color}33">${bank.logo}</div>
+        <div>
+          <div class="bank-name">${bank.name}</div>
+          <div class="bank-code">${bank.code} · /api/v1/rates/${bank.slug}</div>
+        </div>
+      </div>
+      <div class="rate-header-row">
+        <div class="rate-col-label"></div>
+        <div class="rate-col-label">PAIR</div>
+        <div class="rate-col-label">BUY</div>
+        <div class="rate-col-label">SELL</div>
+      </div>
+      ${bank.rates.map(r => `
+        <div class="rate-row">
+          <div class="rate-flag">${r.flag}</div>
+          <div class="rate-currency">${r.currency}/ETB</div>
+          <div class="rate-buy">${r.buy.toFixed(r.buy < 1 ? 4 : 2)}</div>
+          <div class="rate-sell">${r.sell.toFixed(r.sell < 1 ? 4 : 2)}</div>
+        </div>
+      `).join('')}
+      <div class="updated-tag"><div class="live-dot"></div>${today} · EAT</div>
+    </div>
+  `).join('');
+  triggerFadeIns();
+}
+
+// ─── TICKER ───
+function buildTicker() {
+  const items = [];
+  banks.forEach(bank => {
+    bank.rates.forEach(r => {
+      const pct = ((r.sell - r.buy) / r.buy * 100 / 2).toFixed(2);
+      const isUp = Math.random() > 0.4;
+      items.push({ bank: bank.code, currency: r.currency, buy: r.buy, sell: r.sell, up: isUp, pct });
+    });
+  });
+  const ticker = document.getElementById('ticker');
+  const html = [...items,...items].map(i => `
+    <div class="ticker-item">
+      <span style="color:var(--text-dim)">${i.bank}</span>
+      <span style="color:var(--text)">${i.currency}/ETB</span>
+      <span class="${i.up?'ticker-up':'ticker-down'}">${i.up?'▲':'▼'} ${i.sell.toFixed(i.sell<1?4:2)}</span>
+      <span style="color:var(--muted);font-size:10px">${i.up?'+':'−'}${i.pct}%</span>
+    </div>
+  `).join('');
+  ticker.innerHTML = html;
+}
+
+// ─── COPY SWAGGER ───
+function copySwagger() {
+  navigator.clipboard.writeText(document.getElementById('swagger-url-text').textContent);
+  const btn = document.querySelector('.copy-btn');
+  btn.textContent = 'COPIED!';
+  btn.style.color = 'var(--green)';
+  setTimeout(() => { btn.textContent = 'COPY'; btn.style.color = ''; }, 2000);
+}
+
+// ─── INTERSECTION OBSERVER ───
+function triggerFadeIns() {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 60);
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-in').forEach(el => io.observe(el));
+}
+
+// ─── LIVE FLUCTUATION ───
+function jitter() {
+  document.getElementById('hero-buy').textContent = (57.82 + (Math.random()-0.5)*0.08).toFixed(2);
+  document.getElementById('hero-sell').textContent = (58.94 + (Math.random()-0.5)*0.08).toFixed(2);
+}
+
+// ─── INIT ───
+renderRates();
+buildTicker();
+triggerFadeIns();
+setInterval(jitter, 4000);
+</script>
+</body>
+</html>

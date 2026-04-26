@@ -1,19 +1,19 @@
 {
-  "total_requests": 54,
-  "updated_at": "2026-04-26T19:32:34.596403Z",
+  "total_requests": 58,
+  "updated_at": "2026-04-26T19:33:19.732678Z",
   "by_path": {
     "/apidocs": 8,
     "/swaggerui/droid-sans.css": 3,
     "/swaggerui/swagger-ui.css": 3,
     "/swaggerui/swagger-ui-bundle.js": 3,
     "/swaggerui/swagger-ui-standalone-preset.js": 3,
-    "/swagger.json": 7,
+    "/swagger.json": 8,
     "/swaggerui/favicon-32x32.png": 3,
     "/cbe-exchange-rates": 2,
     "/boa-exchange-rates": 1,
     "/favicon.ico": 4,
     "/openapi.json": 1,
-    "/": 13,
-    "/.well-known/appspecific/com.chrome.devtools.json": 3
+    "/": 15,
+    "/.well-known/appspecific/com.chrome.devtools.json": 4
   }
 }
