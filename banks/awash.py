@@ -1,6 +1,6 @@
 import logging
 import re
-
+from termcolor import colored
 import requests
 
 logger = logging.getLogger(__name__)
@@ -107,3 +107,5 @@ if __name__ == "__main__":
     rates = get_awash_rates("2026-04-24")
     for code, r in rates.items():
         print(r)
+
+    print(colored("COnfigure Nonce security for awash bank", "red"))
