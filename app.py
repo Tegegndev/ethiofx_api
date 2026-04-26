@@ -430,15 +430,11 @@ def _bank_fetchers():
     }
 
 
-def get_single_bank_currency_rate(bank_value, currency_value, target_date=None):
+def get_bank_rates(bank_value, target_date=None):
     bank = _resolve_bank_metadata(bank_value)
     if not bank:
         return {"status": "error", "message": "Unknown bank."}, 404
 
-    if not currency_value:
-        return {"status": "error", "message": "currency query parameter is required."}, 400
-
-    currency_code = currency_value.strip().upper()
     fetcher = _bank_fetchers().get(bank["short_name"])
     if not fetcher:
         return {"status": "error", "message": "Bank is not configured."}, 500
@@ -456,6 +452,35 @@ def get_single_bank_currency_rate(bank_value, currency_value, target_date=None):
     if not isinstance(rates, dict):
         return {"status": "error", "message": "Unexpected bank response shape."}, 500
 
+    date_value = target_date or datetime.now(timezone.utc).date().isoformat()
+    return {
+        "status": "success",
+        "bank": bank["full_name"],
+        "bank_short_name": bank["short_name"],
+        "bank_logo_url": bank["logo_url"],
+        "date": date_value,
+        "source": bank["source"],
+        "rates": rates,
+    }
+
+
+def get_single_bank_currency_rate(bank_value, currency_value, target_date=None):
+    if not currency_value:
+        return {"status": "error", "message": "currency query parameter is required."}, 400
+
+    bank_rates_result = get_bank_rates(bank_value, target_date)
+    if isinstance(bank_rates_result, tuple):
+        return bank_rates_result
+
+    bank = {
+        "full_name": bank_rates_result.get("bank"),
+        "short_name": bank_rates_result.get("bank_short_name"),
+        "logo_url": bank_rates_result.get("bank_logo_url"),
+        "source": bank_rates_result.get("source"),
+    }
+    rates = bank_rates_result.get("rates", {})
+
+    currency_code = currency_value.strip().upper()
     rate = rates.get(currency_code)
     if not rate:
         return {
@@ -612,6 +637,20 @@ def single_rate_endpoint():
     return result
 
 
+def bank_rates_endpoint(bank):
+    target_date = request.args.get("date")
+    if target_date and not DATE_REGEX.match(target_date):
+        return {"status": "error", "message": "Invalid date format. Use YYYY-MM-DD."}, 400
+    return get_bank_rates(bank, target_date)
+
+
+def bank_currency_rate_endpoint(bank, currency):
+    target_date = request.args.get("date")
+    if target_date and not DATE_REGEX.match(target_date):
+        return {"status": "error", "message": "Invalid date format. Use YYYY-MM-DD."}, 400
+    return get_single_bank_currency_rate(bank, currency, target_date)
+
+
 @api.route("/api/v1/banks")
 class BanksCatalogResource(Resource):
     @api.doc(
@@ -638,6 +677,39 @@ class SingleRateLookupResource(Resource):
     @api.response(404, "Not found", single_rate_response_model)
     def get(self):
         return single_rate_endpoint()
+
+
+@api.route("/api/v1/rates/<string:bank>")
+class BankRatesLookupResource(Resource):
+    @api.expect(date_query_parser)
+    @api.doc(
+        summary="Get all rates for a bank",
+        description=(
+            "Returns all available rates for one bank.\n\n"
+            "Example request:\n"
+            "`/api/v1/rates/cbe?date=2026-04-26`"
+        ),
+    )
+    def get(self, bank):
+        return bank_rates_endpoint(bank)
+
+
+@api.route("/api/v1/rates/<string:bank>/<string:currency>")
+class BankCurrencyRateLookupResource(Resource):
+    @api.expect(date_query_parser)
+    @api.doc(
+        summary="Get a single bank/currency rate",
+        description=(
+            "Path-based single-rate endpoint.\n\n"
+            "Example request:\n"
+            "`/api/v1/rates/cbe/USD?date=2026-04-26`"
+        ),
+    )
+    @api.response(200, "Success", single_rate_response_model)
+    @api.response(400, "Invalid query", single_rate_response_model)
+    @api.response(404, "Not found", single_rate_response_model)
+    def get(self, bank, currency):
+        return bank_currency_rate_endpoint(bank, currency)
 
 
 @api.route("/dashen-exchange-rates")

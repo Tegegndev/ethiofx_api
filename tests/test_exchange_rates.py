@@ -469,6 +469,8 @@ class ExchangeRateTests(unittest.TestCase):
         self.assertEqual(spec["info"]["title"], "Ethiopian Bank Exchange Rates API")
         self.assertIn("/cbe-exchange-rates", spec["paths"])
         self.assertIn("/api/v1/rates", spec["paths"])
+        self.assertIn("/api/v1/rates/{bank}", spec["paths"])
+        self.assertIn("/api/v1/rates/{bank}/{currency}", spec["paths"])
         self.assertIn("/apidocs", index_page[0])
 
     def test_request_stats_file_counter_persists(self):
@@ -532,6 +534,30 @@ class ExchangeRateTests(unittest.TestCase):
             result,
             ({"status": "error", "message": "Currency USD not found for bank cbe."}, 404),
         )
+
+    def test_get_bank_rates_success(self):
+        with patch.object(
+            self.app,
+            "get_cbe_exchange_rates",
+            return_value={"USD": {"buying": 57.8, "selling": 58.94}},
+        ):
+            result = self.app.get_bank_rates("cbe", "2026-04-26")
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["bank_short_name"], "cbe")
+        self.assertIn("USD", result["rates"])
+
+    def test_bank_currency_rate_endpoint_path_style(self):
+        with patch.object(
+            self.app,
+            "get_single_bank_currency_rate",
+            return_value={"status": "success", "currency": "USD"},
+        ):
+            with patch.object(self.app.request, "args", {"date": "2026-04-26"}, create=True):
+                result = self.app.bank_currency_rate_endpoint("cbe", "USD")
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["currency"], "USD")
 
     def test_banks_catalog_endpoint_shape(self):
         response = self.app.banks_catalog_endpoint()

@@ -65,6 +65,8 @@ def install_import_stubs():
                     "paths": {
                         "/cbe-exchange-rates": {},
                         "/api/v1/rates": {},
+                        "/api/v1/rates/{bank}": {},
+                        "/api/v1/rates/{bank}/{currency}": {},
                         "/api/v1/banks": {},
                     },
                 }

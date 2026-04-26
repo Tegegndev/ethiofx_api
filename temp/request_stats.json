@@ -1,21 +1,22 @@
 {
-  "total_requests": 101,
-  "updated_at": "2026-04-26T19:41:11.930144Z",
+  "total_requests": 110,
+  "updated_at": "2026-04-26T19:44:07.869894Z",
   "by_path": {
-    "/apidocs": 15,
-    "/swaggerui/droid-sans.css": 8,
-    "/swaggerui/swagger-ui.css": 8,
-    "/swaggerui/swagger-ui-bundle.js": 8,
-    "/swaggerui/swagger-ui-standalone-preset.js": 8,
-    "/swagger.json": 14,
-    "/swaggerui/favicon-32x32.png": 7,
+    "/apidocs": 16,
+    "/swaggerui/droid-sans.css": 9,
+    "/swaggerui/swagger-ui.css": 9,
+    "/swaggerui/swagger-ui-bundle.js": 9,
+    "/swaggerui/swagger-ui-standalone-preset.js": 9,
+    "/swagger.json": 15,
+    "/swaggerui/favicon-32x32.png": 8,
     "/cbe-exchange-rates": 2,
     "/boa-exchange-rates": 1,
     "/favicon.ico": 4,
-    "/openapi.json": 2,
+    "/openapi.json": 3,
     "/": 16,
     "/.well-known/appspecific/com.chrome.devtools.json": 4,
     "/api/v1/rates": 2,
-    "/api/v1/banks": 2
+    "/api/v1/banks": 2,
+    "/api/v1/rates/cbe/USD": 1
   }
 }
