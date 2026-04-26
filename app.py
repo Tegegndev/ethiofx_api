@@ -1,17 +1,24 @@
-import requests
 import json
-from datetime import datetime
-from bs4 import BeautifulSoup
-from datetime import timezone
+import logging
 import re
+from datetime import datetime, timezone
+
+import requests
+from bs4 import BeautifulSoup
 from flask import Flask, jsonify
 
 from banks.awash import get_awash_rates
 from banks.hibret import scrape_hibret_exchange_rates
 from banks.nib import scrape_nib_rates
-from banks.nib import scrape_nib_rates
 from banks.wegagen import get_wegagen_rates
 
+# Configure logging once here for the whole application.
+# All loggers in sub-modules (banks/*.py) will inherit this config.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -55,23 +62,21 @@ def fetch_cbe_exchange_rates(target_date=None):
     }
 
     try:
+        logger.info("Fetching CBE exchange rates for date: %s", target_date)
         response = requests.get(url, headers=headers, params=params, cookies=cookies)
         response.raise_for_status()  # Raise exception for bad status codes
         
         data = response.json()
 
         if not data:
-            print(f"No data available for {target_date}")
+            logger.warning("No CBE data available for %s", target_date)
             return
 
         # Extract the main record (since _limit=1, it's the first item in the list)
         main_record = data[0]
         rates = main_record.get('ExchangeRate', [])
 
-        print(f"CBE Daily Exchange Rates - Date: {main_record.get('Date')}")
-        print("-" * 85)
-        print(f"{'Currency Name':<25} | {'Code':<6} | {'Cash Buying':<12} | {'Cash Selling':<12}")
-        print("-" * 85)
+        logger.info("CBE Daily Exchange Rates - Date: %s", main_record.get('Date'))
         cleaned_rates = {}
         for rate in rates:
             currency = rate.get('currency', {})
@@ -89,13 +94,13 @@ def fetch_cbe_exchange_rates(target_date=None):
                 'selling': selling
             }
 
-            print(f"{name:<25} | {code:<6} | {buying:<12.4f} | {selling:<12.4f}")
+        logger.info("Successfully fetched %d currencies from CBE", len(cleaned_rates))
         return cleaned_rates
 
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching data: {e}")
+        logger.error("Error fetching CBE data: %s", e)
     except (KeyError, IndexError) as e:
-        print(f"Error parsing JSON structure: {e}")
+        logger.error("Error parsing CBE JSON structure: %s", e)
 
 def scrape_boa_exchange_rates():
     url = 'https://www.bankofabyssinia.com/exchange-rate-2/'
@@ -109,7 +114,7 @@ def scrape_boa_exchange_rates():
     # Mapping to match CBE's "CurrencyName" field
     currency_map = {
         "USD": "US DOLLAR", "GBP": "POUND STERLING", "EUR": "EURO",
-        "AED": "UAE DIRHAM", "CHF": "SWISS FRANK", "SEK": "SWEDISH KRONER",
+        "AED": "UAE DIRHAM", "CHF": "SWISS FRANC", "SEK": "SWEDISH KRONER",
         "NOK": "NORWEGIAN KRONER", "CAD": "CANADIAN DOLLAR", "SAR": "SAUDI RIYAL",
         "CNY": "CHINESE YUAN", "KWD": "KUWAITI DINAR", "INR": "INDIAN RUPEE",
         "JPY": "JAPANIS YEN", "ZAR": "SOUTH AFRICAN RAND", "DKK": "DANISH KRONER",
@@ -224,38 +229,38 @@ def scrape_coop_exchange_rates():
         'Referer': 'https://www.google.com/',
     }
 
-    print(f"DEBUG: Fetching {url}...")
+    logger.info("Fetching Coop Bank Oromia exchange rates...")
     
     try:
         response = requests.get(url, headers=headers, timeout=20)
-        print(f"DEBUG: Status Code: {response.status_code}")
+        logger.debug("Coop Bank response status: %d", response.status_code)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # --- STRATEGY 1: TRY JAVASCRIPT VARIABLE ---
-        print("DEBUG: Attempting to find 'var exchangeRates' in script tags...")
+        logger.debug("Attempting to find 'var exchangeRates' in script tags...")
         json_data = None
         
         # Use .text instead of .string for better safety
         scripts = soup.find_all('script')
         for i, script in enumerate(scripts):
             if script.text and 'exchangeRates =' in script.text:
-                print(f"DEBUG: Found 'exchangeRates' in script #{i}")
+                logger.debug("Found 'exchangeRates' in script #%d", i)
                 # Relaxed regex: allows whitespace, looks for JSON object, optional semicolon
                 match = re.search(r'exchangeRates\s*=\s*(\{.*?\})(?:;|\s*$)', script.text, re.DOTALL)
                 if match:
                     try:
                         json_str = match.group(1)
                         json_data = json.loads(json_str)
-                        print("DEBUG: Successfully parsed JSON from script.")
+                        logger.debug("Successfully parsed JSON from script.")
                         break
                     except json.JSONDecodeError as e:
-                        print(f"DEBUG: JSON decode error: {e}")
+                        logger.debug("JSON decode error in script: %s", e)
         
         # --- STRATEGY 2: FALLBACK TO HTML TABLE ---
         if not json_data:
-            print("DEBUG: Script strategy failed. Switching to HTML table scraping...")
+            logger.debug("Script strategy failed. Switching to HTML table scraping...")
             table = soup.find('table', id='exchange-rates-table')
             if table:
                 json_data = {}
@@ -279,15 +284,15 @@ def scrape_coop_exchange_rates():
                                 "name": name
                             }
                 if json_data:
-                    print(f"DEBUG: Scraped {len(json_data)} currencies from table.")
+                    logger.debug("Scraped %d currencies from table.", len(json_data))
             else:
-                print("DEBUG: Could not find table with id 'exchange-rates-table'")
+                logger.warning("Could not find table with id 'exchange-rates-table'")
 
         if not json_data:
             return {"error": "Failed to extract data via Script OR Table strategies."}
 
         # --- DATA PROCESSING ---
-        print("DEBUG: Formatting data to CBE structure...")
+        logger.debug("Formatting Coop Bank data...")
         
         # Date Extraction
         formatted_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -333,7 +338,7 @@ def scrape_coop_exchange_rates():
                 }
                 exchange_rates_list.append(rate_entry)
             except ValueError:
-                print(f"DEBUG: Skipping {code} due to float conversion error")
+                logger.debug("Skipping %s due to float conversion error", code)
                 continue
 
         # 3. Construct cleaned rates dict
@@ -350,11 +355,11 @@ def scrape_coop_exchange_rates():
                 'buying': buying,
                 'selling': selling
             }
+        logger.info("Successfully scraped %d currencies from Coop Bank", len(cleaned_rates))
         return cleaned_rates
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.error("Coop Bank scraper failed: %s", e, exc_info=True)
         return {"error": f"Scraper Exception: {str(e)}"}
 
 
@@ -456,22 +461,34 @@ def get_coop_exchange_rates():
 @app.route('/hibret-exchange-rates', methods=['GET'])
 def get_hibret_exchange_rates():
     result = scrape_hibret_exchange_rates()
+    if "error" in result:
+        logger.error("Hibret endpoint returning error: %s", result["error"])
+        return jsonify({"error": "Failed to fetch Hibret Bank exchange rates"}), 500
     return jsonify(result)
-    
+
 @app.route('/wegagen-exchange-rates', methods=['GET'])
 def get_wegagen_exchange_rates():
     result = get_wegagen_rates()
+    if "error" in result:
+        logger.error("Wegagen endpoint returning error: %s", result["error"])
+        return jsonify({"error": "Failed to fetch Wegagen Bank exchange rates"}), 500
     return jsonify(result)
 
-#awash
+# awash
 @app.route('/awash-exchange-rates', methods=['GET'])
 def get_awash_exchange_rates():
     result = get_awash_rates()
+    if "error" in result:
+        logger.error("Awash endpoint returning error: %s", result["error"])
+        return jsonify({"error": "Failed to fetch Awash Bank exchange rates"}), 500
     return jsonify(result)
 
 @app.route('/nib-exchange-rates', methods=['GET'])
 def get_nib_exchange_rates():
     result = scrape_nib_rates()
+    if "error" in result:
+        logger.error("NIB endpoint returning error: %s", result["error"])
+        return jsonify({"error": "Failed to fetch NIB Bank exchange rates"}), 500
     return jsonify(result)
 
 @app.route('/')
