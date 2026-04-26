@@ -588,6 +588,15 @@
     color: var(--green);
   }
 
+  .rates-loader .loading-dots::after {
+    content: "...";
+    display: inline-block;
+    width: 14px;
+    animation: dots 1.2s steps(4, end) infinite;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+
   .rates-loader-spin {
     width: 12px;
     height: 12px;
@@ -599,6 +608,63 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  @keyframes dots {
+    0% { width: 0; }
+    100% { width: 14px; }
+  }
+
+  .skeleton-card {
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  .skeleton-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .skeleton-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.09);
+  }
+
+  .skeleton-line {
+    height: 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.09);
+    margin: 8px 0;
+  }
+
+  .skeleton-line.w-40 { width: 40%; }
+  .skeleton-line.w-50 { width: 50%; }
+  .skeleton-line.w-65 { width: 65%; }
+  .skeleton-line.w-80 { width: 80%; }
+
+  .skeleton-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    align-items: center;
+  }
+
+  .skeleton-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 
   .htmx-indicator {
@@ -942,7 +1008,7 @@
 
   <div class="rates-loader htmx-indicator" id="rates-loader">
     <span class="rates-loader-spin"></span>
-    <span>Fetching latest rates from bank sources...</span>
+    <span>Fetching latest rates from bank sources<span class="loading-dots"></span></span>
   </div>
   <div
     id="rates-content"
@@ -953,8 +1019,53 @@
     hx-indicator="#rates-loader"
   >
     <div class="rates-grid" id="rates-grid">
-      <div class="rate-card">
-        <div class="bank-name">Preparing latest rates...</div>
+      <div class="rate-card skeleton-card" aria-hidden="true">
+        <div class="skeleton-head">
+          <div class="skeleton-logo"></div>
+          <div style="width:100%">
+            <div class="skeleton-line w-65"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+        </div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+      </div>
+      <div class="rate-card skeleton-card" aria-hidden="true">
+        <div class="skeleton-head">
+          <div class="skeleton-logo"></div>
+          <div style="width:100%">
+            <div class="skeleton-line w-65"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+        </div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+      </div>
+      <div class="rate-card skeleton-card" aria-hidden="true">
+        <div class="skeleton-head">
+          <div class="skeleton-logo"></div>
+          <div style="width:100%">
+            <div class="skeleton-line w-65"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+        </div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+      </div>
+      <div class="rate-card skeleton-card" aria-hidden="true">
+        <div class="skeleton-head">
+          <div class="skeleton-logo"></div>
+          <div style="width:100%">
+            <div class="skeleton-line w-65"></div>
+            <div class="skeleton-line w-40"></div>
+          </div>
+        </div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
+        <div class="skeleton-row"><div class="skeleton-dot"></div><div class="skeleton-line w-80"></div><div class="skeleton-line w-50"></div><div class="skeleton-line w-50"></div></div>
       </div>
     </div>
   </div>
