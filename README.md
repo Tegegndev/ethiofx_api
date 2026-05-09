@@ -228,7 +228,7 @@ Generated files under `temp/`:
 
 - The app imports `banks.coop` and `banks.dashen` from `app.py`; ensure those modules exist in your deployment branch/environment.
 - Some upstream sources can change HTML/API formats and may temporarily break individual bank scrapers.
-- `hibret` scraper currently requests with `verify=False` (TLS verification disabled), which may not be suitable for strict production security requirements.
+- `hibret` scraper currently requests with `verify=False` (TLS verification disabled). Treat this as a security risk and replace it with proper certificate verification before production use.
 
 ## License
 
