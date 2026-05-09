@@ -1,4 +1,7 @@
-```
-__pycache__/
+__pycache__
+coop.py
+dashen.py
+.codex
 *.pyc
-```
+
+
