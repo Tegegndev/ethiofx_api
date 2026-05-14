@@ -216,6 +216,10 @@ curl "http://127.0.0.1:5000/cbe-exchange-rates?date=2026-04-24"
 
 <img src="https://github.com/user-attachments/assets/a8fa6877-a3de-4f47-843b-1f45f370819a" alt="Terminal-style screenshot showing a date-aware bank exchange-rate request example and the returned normalized JSON payload." />
 
+<img src="https://github.com/user-attachments/assets/8571aec8-0be7-4eee-9b3f-8de81b6f6a1e" alt="Terminal-style screenshot showing an additional API exchange-rate request and success JSON response example (screenshot 5)." />
+
+<img src="https://github.com/user-attachments/assets/bbcb85b1-af47-4ca7-a958-73ee29c061e9" alt="Terminal-style screenshot showing an additional API exchange-rate output example with curl request context (screenshot 6)." />
+
 ## Testing
 
 Run test suite:
