@@ -208,13 +208,13 @@ curl "http://127.0.0.1:5000/cbe-exchange-rates?date=2026-04-24"
 
 ### API response examples
 
-<img src="https://github.com/user-attachments/assets/08f7dcf7-0b83-4b8b-99f9-f403d3a693c2" alt="API response screenshot 1" />
+<img src="https://github.com/user-attachments/assets/08f7dcf7-0b83-4b8b-99f9-f403d3a693c2" alt="Terminal-style screenshot showing GET /api/v1/rates and a successful USD response for Commercial Bank of Ethiopia." />
 
-<img src="https://github.com/user-attachments/assets/509c5b04-9937-49ca-9841-96f497527a4a" alt="API response screenshot 2" />
+<img src="https://github.com/user-attachments/assets/509c5b04-9937-49ca-9841-96f497527a4a" alt="Screenshot of API example output demonstrating a successful exchange-rate lookup response." />
 
-<img src="https://github.com/user-attachments/assets/041d8be6-6eac-426c-94be-0fa2823024db" alt="API response screenshot 3" />
+<img src="https://github.com/user-attachments/assets/041d8be6-6eac-426c-94be-0fa2823024db" alt="Screenshot showing another API response example for exchange-rate data in JSON format." />
 
-<img src="https://github.com/user-attachments/assets/a8fa6877-a3de-4f47-843b-1f45f370819a" alt="API response screenshot 4" />
+<img src="https://github.com/user-attachments/assets/a8fa6877-a3de-4f47-843b-1f45f370819a" alt="Screenshot illustrating API request and response formatting for bank currency rates." />
 
 ## Testing
 
