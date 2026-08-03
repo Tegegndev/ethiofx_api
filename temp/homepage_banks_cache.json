@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-04-26T19:55:55.636726Z",
+  "generated_at": "2026-08-03T13:39:29.047292Z",
   "banks": [
     {
       "name": "Awash Bank",
       "code": "AWASH",
       "slug": "awash",
-      "logo_url": "https://awashbank.com/wp-content/uploads/2021/05/logo.png",
+      "logo_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Awash_Bank_Final_logo.jpg/960px-Awash_Bank_Final_logo.jpg?_=20210922052149",
       "source": "https://awashbank.com/exchange-historical/",
       "status": "unavailable",
-      "date": "2026-04-26",
+      "date": "2026-08-03",
       "rates": [],
       "color": "#1d4ed8",
       "bg": "#0d1f4d",
@@ -18,32 +18,11 @@
       "name": "Bank of Abyssinia",
       "code": "BOA",
       "slug": "boa",
-      "logo_url": "https://www.bankofabyssinia.com/wp-content/uploads/2020/09/logo.png",
+      "logo_url": "https://upload.wikimedia.org/wikipedia/commons/3/36/BOA-LOGO.png?_=20180322130736",
       "source": "https://www.bankofabyssinia.com/exchange-rate",
       "status": "live",
-      "date": "2026-04-26",
-      "rates": [
-        {
-          "currency": "USD",
-          "buy": 154.1175,
-          "sell": 157.1999
-        },
-        {
-          "currency": "EUR",
-          "buy": 182.9188,
-          "sell": 186.5772
-        },
-        {
-          "currency": "GBP",
-          "buy": 208.3534,
-          "sell": 212.5205
-        },
-        {
-          "currency": "AED",
-          "buy": 44.2189,
-          "sell": 45.1033
-        }
-      ],
+      "date": "2026-08-03",
+      "rates": [],
       "color": "#1a6b3c",
       "bg": "#0d3d21",
       "text": "#4ade80"
@@ -52,30 +31,30 @@
       "name": "Commercial Bank of Ethiopia",
       "code": "CBE",
       "slug": "cbe",
-      "logo_url": "https://www.combanketh.et/assets/logo.png",
+      "logo_url": "https://images.seeklogo.com/logo-png/54/1/commercial-bank-of-ethiopia-logo-png_seeklogo-547506.png",
       "source": "https://combanketh.et/exchange-rates",
       "status": "live",
-      "date": "2026-04-26",
+      "date": "2026-08-03",
       "rates": [
         {
           "currency": "USD",
-          "buy": 153.2199,
-          "sell": 156.2843
+          "buy": 159.0319,
+          "sell": 162.2125
         },
         {
           "currency": "EUR",
-          "buy": 179.5431,
-          "sell": 183.1339
+          "buy": 182.1074,
+          "sell": 185.7496
         },
         {
           "currency": "GBP",
-          "buy": 203.2736,
-          "sell": 207.3391
+          "buy": 208.2219,
+          "sell": 212.3864
         },
         {
           "currency": "AED",
-          "buy": 41.7197,
-          "sell": 42.5541
+          "buy": 43.3046,
+          "sell": 44.1707
         }
       ],
       "color": "#92400e",
@@ -86,30 +65,30 @@
       "name": "Cooperative Bank of Oromia",
       "code": "COOP",
       "slug": "coop",
-      "logo_url": "https://coopbankoromia.com.et/wp-content/uploads/2021/06/logo.png",
+      "logo_url": "https://coopbankoromia.com.et/wp-content/uploads/2023/01/Cooperative_Bank_of_Oromia-3.png",
       "source": "https://coopbankoromia.com.et/daily-exchange-rates/",
       "status": "live",
-      "date": "2026-04-26",
+      "date": "2026-08-03",
       "rates": [
         {
           "currency": "USD",
-          "buy": 153.2668,
-          "sell": 156.3321
+          "buy": 159.8008,
+          "sell": 162.9968
         },
         {
           "currency": "EUR",
-          "buy": 182.4026,
-          "sell": 186.0507
+          "buy": 186.2471,
+          "sell": 189.972
         },
         {
           "currency": "GBP",
-          "buy": 207.2012,
-          "sell": 211.3452
+          "buy": 211.1872,
+          "sell": 215.4109
         },
         {
           "currency": "AED",
-          "buy": 44.621,
-          "sell": 45.5134
+          "buy": 46.199,
+          "sell": 47.123
         }
       ],
       "color": "#7c3aed",
@@ -120,30 +99,30 @@
       "name": "Dashen Bank",
       "code": "DASHEN",
       "slug": "dashen",
-      "logo_url": "https://dashenbanksc.com/wp-content/uploads/2021/06/logo.png",
+      "logo_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Dashen_Bank.png?_=20221025143013",
       "source": "https://dashenbanksc.com/exchange-rates/",
       "status": "live",
-      "date": "2026-04-26",
+      "date": "2026-08-03",
       "rates": [
         {
           "currency": "USD",
-          "buy": 153.1701,
-          "sell": 156.2335
+          "buy": 159.8127,
+          "sell": 163.009
         },
         {
           "currency": "EUR",
-          "buy": 181.966,
-          "sell": 185.6054
+          "buy": 187.2415,
+          "sell": 190.9863
         },
         {
           "currency": "GBP",
-          "buy": 209.3762,
-          "sell": 213.5637
+          "buy": 212.846,
+          "sell": 217.1029
         },
         {
           "currency": "AED",
-          "buy": 44.4256,
-          "sell": 45.3141
+          "buy": 46.1934,
+          "sell": 47.1173
         }
       ],
       "color": "#0e7490",
@@ -154,30 +133,30 @@
       "name": "Hibret Bank",
       "code": "HIBRET",
       "slug": "hibret",
-      "logo_url": "https://hibretbank.com.et/wp-content/uploads/2021/06/logo.png",
+      "logo_url": "https://hibretbank.com.et/wp-content/uploads/2021/06/hibret-logo.svg",
       "source": "https://hibretbank.com.et/",
       "status": "live",
-      "date": "2026-04-26",
+      "date": "2026-08-03",
       "rates": [
         {
           "currency": "USD",
-          "buy": 154.0508,
-          "sell": 157.1318
+          "buy": 161.3976,
+          "sell": 164.6255
         },
         {
           "currency": "EUR",
-          "buy": 184.8039,
-          "sell": 188.5
+          "buy": 188.7745,
+          "sell": 192.55
         },
         {
           "currency": "GBP",
-          "buy": 207.0929,
-          "sell": 211.2348
+          "buy": 214.8727,
+          "sell": 219.1701
         },
         {
           "currency": "AED",
-          "buy": 41.938,
-          "sell": 42.7768
+          "buy": 43.5088,
+          "sell": 44.379
         }
       ],
       "color": "#be185d",
@@ -188,30 +167,30 @@
       "name": "NIB International Bank",
       "code": "NIB",
       "slug": "nib",
-      "logo_url": "https://nibbanksc.com/wp-content/uploads/2021/06/logo.png",
+      "logo_url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NIB_Bank_Logo.png?_=20150504085216",
       "source": "https://nibbanksc.com/",
       "status": "live",
-      "date": "2026-04-26",
+      "date": "2026-08-03",
       "rates": [
         {
           "currency": "USD",
-          "buy": 153.138,
-          "sell": 156.2007
+          "buy": 159.2829,
+          "sell": 162.4686
         },
         {
           "currency": "EUR",
-          "buy": 179.0287,
-          "sell": 182.6093
+          "buy": 185.3257,
+          "sell": 189.0322
         },
         {
           "currency": "GBP",
-          "buy": 206.721,
-          "sell": 210.8554
+          "buy": 213.2479,
+          "sell": 217.5129
         },
         {
           "currency": "AED",
-          "buy": 41.6895,
-          "sell": 42.5233
+          "buy": 43.3682,
+          "sell": 44.2356
         }
       ],
       "color": "#b45309",
@@ -222,30 +201,30 @@
       "name": "Wegagen Bank",
       "code": "WEGAGEN",
       "slug": "wegagen",
-      "logo_url": "https://wegagenbanksc.com.et/wp-content/uploads/2022/11/logo.png",
+      "logo_url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Wogagen_Bank.png?_=20220207121029",
       "source": "https://wegagenbanksc.com.et/",
       "status": "live",
-      "date": "2026-04-26",
+      "date": "2026-08-03",
       "rates": [
         {
           "currency": "USD",
-          "buy": 154.5959,
-          "sell": 157.6878
+          "buy": 159.8072,
+          "sell": 163.0033
         },
         {
           "currency": "GBP",
-          "buy": 209.1992,
-          "sell": 213.3832
+          "buy": 215.2764,
+          "sell": 219.5819
         },
         {
           "currency": "AED",
-          "buy": 42.0811,
-          "sell": 42.9227
+          "buy": 43.5155,
+          "sell": 44.3858
         },
         {
           "currency": "CHF",
-          "buy": 196.9552,
-          "sell": 200.8943
+          "buy": 197.6016,
+          "sell": 201.5536
         }
       ],
       "color": "#065f46",

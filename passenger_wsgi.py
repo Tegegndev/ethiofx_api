@@ -2,14 +2,8 @@ import os
 import sys
 
 
-sys.path.insert(0, os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+	sys.path.insert(0, BASE_DIR)
 
 from app import app as application
-
-
-# def application(environ, start_response):
-#     start_response('200 OK', [('Content-Type', 'text/plain')])
-#     message = 'It works tegegn!\n'
-#     version = 'Python %s\n' % sys.version.split()[0]
-#     response = '\n'.join([message, version])
-#     return [response.encode()]
