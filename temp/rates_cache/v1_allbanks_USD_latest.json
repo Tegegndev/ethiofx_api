@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-08-03T15:20:03.419754Z",
+  "data": {
+    "status": "success",
+    "currency": "USD",
+    "date": "2026-08-03",
+    "rates": {
+      "boa": {
+        "bank": "Bank of Abyssinia",
+        "bank_short_name": "boa",
+        "bank_logo_url": "https://upload.wikimedia.org/wikipedia/commons/3/36/BOA-LOGO.png?_=20180322130736",
+        "source": "https://www.bankofabyssinia.com/exchange-rate",
+        "currency": "USD",
+        "buying": 160.3082,
+        "selling": 163.5144
+      },
+      "cbe": {
+        "bank": "Commercial Bank of Ethiopia",
+        "bank_short_name": "cbe",
+        "bank_logo_url": "https://images.seeklogo.com/logo-png/54/1/commercial-bank-of-ethiopia-logo-png_seeklogo-547506.png",
+        "source": "https://combanketh.et/exchange-rates",
+        "currency": "USD",
+        "buying": 159.0319,
+        "selling": 162.2125
+      },
+      "coop": {
+        "bank": "Cooperative Bank of Oromia",
+        "bank_short_name": "coop",
+        "bank_logo_url": "https://coopbankoromia.com.et/wp-content/uploads/2023/01/Cooperative_Bank_of_Oromia-3.png",
+        "source": "https://coopbankoromia.com.et/daily-exchange-rates/",
+        "currency": "USD",
+        "buying": 159.8008,
+        "selling": 162.9968
+      },
+      "dashen": {
+        "bank": "Dashen Bank",
+        "bank_short_name": "dashen",
+        "bank_logo_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Dashen_Bank.png?_=20221025143013",
+        "source": "https://dashenbanksc.com/exchange-rates/",
+        "currency": "USD",
+        "buying": 159.8127,
+        "selling": 163.009
+      },
+      "hibret": {
+        "bank": "Hibret Bank",
+        "bank_short_name": "hibret",
+        "bank_logo_url": "https://hibretbank.com.et/wp-content/uploads/2021/06/hibret-logo.svg",
+        "source": "https://hibretbank.com.et/",
+        "currency": "USD",
+        "buying": 161.3976,
+        "selling": 164.6255
+      },
+      "nib": {
+        "bank": "NIB International Bank",
+        "bank_short_name": "nib",
+        "bank_logo_url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NIB_Bank_Logo.png?_=20150504085216",
+        "source": "https://nibbanksc.com/",
+        "currency": "USD",
+        "buying": 159.2829,
+        "selling": 162.4686
+      },
+      "wegagen": {
+        "bank": "Wegagen Bank",
+        "bank_short_name": "wegagen",
+        "bank_logo_url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Wogagen_Bank.png?_=20220207121029",
+        "source": "https://wegagenbanksc.com.et/",
+        "currency": "USD",
+        "buying": 159.8072,
+        "selling": 163.0033
+      }
+    },
+    "errors": {
+      "awash": "Failed to fetch Awash Bank exchange rates"
+    }
+  }
+}

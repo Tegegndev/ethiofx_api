@@ -122,7 +122,14 @@ ethiofx_api/
 
 ### Unified lookup endpoints (recommended)
 
+- `GET /api/v1/rates?currency=<code>&date=YYYY-MM-DD`
+  - Returns that currency's rate from **every bank in one call**
+  - Example: `curl "http://127.0.0.1:5000/api/v1/rates?currency=USD"`
+  - `currency` may also be passed as `ccy`
+  - `date` is optional
+
 - `GET /api/v1/rates?bank=<short_name>&currency=<code>&date=YYYY-MM-DD`
+  - Returns one normalized rate object for a single bank
   - `currency` may also be passed as `ccy`
   - `date` is optional
 
@@ -194,6 +201,9 @@ or
 ## Example usage (curl)
 
 ```bash
+# USD rate from ALL banks in one call
+curl "http://127.0.0.1:5000/api/v1/rates?currency=USD"
+
 # All rates for CBE
 curl "http://127.0.0.1:5000/api/v1/rates/cbe"
 
@@ -233,8 +243,8 @@ python -m unittest discover -s tests -v
 Generated files under `temp/`:
 
 - `request_stats.json` — request counters per path + total
-- `homepage_banks_cache.json` — cached homepage card data (default TTL: 300s)
-
+- `homepage_banks_cache.json` — cached homepage card data (default TTL: 4h)
+- `rates_cache/<bank>/<key>.json` — per-bank/currency/date rate results (default TTL: 4h)
 ## Deployment notes
 
 - `passenger_wsgi.py` exposes `application` for WSGI hosting.

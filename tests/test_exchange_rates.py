@@ -560,6 +560,60 @@ class ExchangeRateTests(unittest.TestCase):
         self.assertEqual(result["status"], "success")
         self.assertEqual(result["currency"], "USD")
 
+    def test_all_banks_currency_rate_returns_rates_from_every_bank(self):
+        def fake_rates(short, has_usd=True, error=False):
+            if error:
+                return {"error": "down"}
+            rates = (
+                {"USD": {"currency_code": "USD", "buying": 56, "selling": 57}}
+                if has_usd
+                else {"EUR": {}}
+            )
+            return rates
+
+        def fetchers():
+            return {
+                "cbe": lambda d=None: fake_rates("cbe"),
+                "boa": lambda: fake_rates("boa"),
+                "coop": lambda: fake_rates("coop", error=True),
+                "dashen": lambda: fake_rates("dashen", has_usd=False),
+                "hibret": lambda: fake_rates("hibret"),
+                "wegagen": lambda: fake_rates("wegagen"),
+                "awash": lambda d=None: fake_rates("awash"),
+                "nib": lambda: fake_rates("nib"),
+            }
+
+        with patch.object(self.app, "_bank_fetchers", side_effect=fetchers):
+            result = self.app.get_all_banks_currency_rate("USD")
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["currency"], "USD")
+        self.assertIn("cbe", result["rates"])
+        self.assertIn("boa", result["rates"])
+        self.assertEqual(result["rates"]["cbe"]["buying"], 56)
+        self.assertEqual(result["rates"]["boa"]["buying"], 56)
+        self.assertIn("coop", result["errors"])
+        self.assertIn("dashen", result["errors"])
+
+    def test_single_rate_endpoint_without_bank_returns_all_banks(self):
+        with patch.object(
+            self.app,
+            "get_all_banks_currency_rate",
+            return_value={"status": "success", "currency": "USD", "rates": {}, "errors": {}},
+        ):
+            with patch.object(self.app.request, "args", {"currency": "USD"}, create=True):
+                result = self.app.single_rate_endpoint()
+
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["currency"], "USD")
+
+    def test_single_rate_endpoint_requires_currency_for_all_banks(self):
+        with patch.object(self.app.request, "args", {}, create=True):
+            result = self.app.single_rate_endpoint()
+
+        self.assertEqual(result[1], 400)
+        self.assertEqual(result[0]["status"], "error")
+
     def test_banks_catalog_endpoint_shape(self):
         response = self.app.banks_catalog_endpoint()
         self.assertEqual(response["status"], "success")

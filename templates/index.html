@@ -952,7 +952,7 @@
       <span class="term-title">GET /api/v1/rates — 200 OK · 48ms</span>
     </div>
     <div class="term-body">
-      <div><span class="term-prompt">$ </span><span style="color:#90cdf4">curl</span> <span class="term-url">https://forex.tegegn.com.et/api/v1/rates?bank=cbe&currency=USD</span></div>
+      <div><span class="term-prompt">$ </span><span style="color:#90cdf4">curl</span> <span class="term-url">https://forex.tegegn.com.et/api/v1/rates?currency=USD</span></div>
       <div>&nbsp;</div>
       <div>{</div>
       <div>&nbsp;&nbsp;<span class="term-key">"status"</span>: <span class="term-str">"success"</span>,</div>
@@ -1078,6 +1078,12 @@
   <p class="section-sub">RESTful JSON API. Base URL: <span style="font-family:'JetBrains Mono',monospace;color:var(--green);font-size:14px">https://forex.tegegn.com.et</span></p>
 
   <div class="endpoints-grid">
+    <a href="/apidocs" class="endpoint-card fade-in">
+      <span class="method-badge get">GET</span>
+      <span class="ep-path">/api/v1/rates?currency={ccy}</span>
+      <span class="ep-desc">One currency across ALL banks — e.g. ?currency=USD</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
     <a href="/apidocs" class="endpoint-card fade-in">
       <span class="method-badge get">GET</span>
       <span class="ep-path">/api/v1/rates?bank={bank}&currency={ccy}</span>

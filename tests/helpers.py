@@ -53,6 +53,7 @@ def install_import_stubs():
             String = _Field
             Float = _Field
             Nested = _Field
+            Raw = _Field
 
         class Resource:
             pass

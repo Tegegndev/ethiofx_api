@@ -74,9 +74,9 @@ single_rate_query_parser = api.parser()
 single_rate_query_parser.add_argument(
     "bank",
     type=str,
-    required=True,
+    required=False,
     location="args",
-    help="Bank short name such as cbe, boa, coop, dashen, hibret, wegagen, awash, nib.",
+    help="Bank short name such as cbe, boa, coop, dashen, hibret, wegagen, awash, nib. Omit to get the currency from all banks.",
 )
 single_rate_query_parser.add_argument(
     "currency",
@@ -139,6 +139,30 @@ single_rate_response_model = api.model(
         "date": fields.String(description="Rate date in YYYY-MM-DD format."),
         "source": fields.String(description="Bank source URL."),
         "message": fields.String(description="Error message for failed lookups."),
+    },
+)
+
+all_banks_rate_model = api.model(
+    "AllBanksRate",
+    {
+        "bank": fields.String(description="Full bank name."),
+        "bank_short_name": fields.String(description="Bank short name."),
+        "bank_logo_url": fields.String(description="Bank logo URL."),
+        "source": fields.String(description="Bank source URL."),
+        "currency": fields.String(description="Requested currency code."),
+        "buying": fields.Float(description="Buying rate."),
+        "selling": fields.Float(description="Selling rate."),
+    },
+)
+
+all_banks_currency_response_model = api.model(
+    "AllBanksCurrencyResponse",
+    {
+        "status": fields.String(description="success or error"),
+        "currency": fields.String(description="Requested currency code."),
+        "date": fields.String(description="Rate date in YYYY-MM-DD format."),
+        "rates": fields.Raw(description="Map of bank short name to rate details."),
+        "errors": fields.Raw(description="Map of bank short name to error messages."),
     },
 )
 
@@ -664,7 +688,10 @@ def get_bank_rates(bank_value, target_date=None):
 
 def get_single_bank_currency_rate(bank_value, currency_value, target_date=None):
     if not currency_value:
-        return {"status": "error", "message": "currency query parameter is required."}, 400
+        return {
+            "status": "error",
+            "message": "currency query parameter is required. e.g. /api/v1/rates?currency=USD (all banks) or /api/v1/rates?bank=cbe&currency=USD",
+        }, 400
 
     bank_rates_result = get_bank_rates(bank_value, target_date)
     if isinstance(bank_rates_result, tuple):
@@ -698,6 +725,65 @@ def get_single_bank_currency_rate(bank_value, currency_value, target_date=None):
         "date": date_value,
         "source": bank["source"],
     }
+
+
+def get_all_banks_currency_rate(currency_value, target_date=None):
+    """Return a single currency's rate from every configured bank.
+
+    Beats querying banks one at a time: one call, all banks. Banks that
+    fail or do not offer the currency are reported individually rather
+    than failing the whole request.
+    """
+    if not currency_value:
+        return {
+            "status": "error",
+            "message": "currency query parameter is required. e.g. /api/v1/rates?currency=USD",
+        }, 400
+
+    currency_code = currency_value.strip().upper()
+    response = {
+        "status": "success",
+        "currency": currency_code,
+        "date": target_date or datetime.now(timezone.utc).date().isoformat(),
+        "rates": {},
+        "errors": {},
+    }
+
+    for bank in get_banks_catalog():
+        short_name = bank["short_name"]
+        bank_rates_result = get_bank_rates(short_name, target_date)
+
+        if isinstance(bank_rates_result, tuple):
+            response["errors"][short_name] = bank_rates_result[0].get(
+                "message", "Failed to fetch rates"
+            )
+            continue
+
+        rate = bank_rates_result.get("rates", {}).get(currency_code)
+        if not rate:
+            response["errors"][short_name] = (
+                f"Currency {currency_code} not offered by {short_name}"
+            )
+            continue
+
+        response["rates"][short_name] = {
+            "bank": bank_rates_result.get("bank"),
+            "bank_short_name": short_name,
+            "bank_logo_url": bank_rates_result.get("bank_logo_url"),
+            "source": bank_rates_result.get("source"),
+            "currency": currency_code,
+            "buying": rate.get("buying"),
+            "selling": rate.get("selling"),
+        }
+
+    if not response["rates"]:
+        return {
+            "status": "error",
+            "message": f"No bank returned rates for currency {currency_code}.",
+            "errors": response["errors"],
+        }, 404
+
+    return response
 
 
 @app.before_request
@@ -831,8 +917,10 @@ def single_rate_endpoint():
     if target_date and not DATE_REGEX.match(target_date):
         return {"status": "error", "message": "Invalid date format. Use YYYY-MM-DD."}, 400
 
-    result = get_single_bank_currency_rate(bank, currency, target_date)
-    return result
+    if not bank:
+        return get_all_banks_currency_rate(currency, target_date)
+
+    return get_single_bank_currency_rate(bank, currency, target_date)
 
 
 def bank_rates_endpoint(bank):
@@ -863,21 +951,26 @@ class BanksCatalogResource(Resource):
 class SingleRateLookupResource(Resource):
     @api.expect(single_rate_query_parser)
     @api.doc(
-        summary="Get one bank/currency rate",
+        summary="Get rates by currency (all banks) or by bank+currency",
         description=(
-            "Returns a single currency rate by bank and currency code.\n\n"
+            "Two modes:\n\n"
+            "1. **All banks** — omit `bank` and pass only `currency` to get "
+            "that currency from every bank in one call.\n"
+            "Example request:\n"
+            "`/api/v1/rates?currency=USD`\n\n"
+            "2. **One bank** — pass `bank` and `currency`.\n"
             "Example request:\n"
             "`/api/v1/rates?bank=cbe&currency=USD`"
         ),
     )
-    @api.response(200, "Success", single_rate_response_model)
-    @api.response(400, "Invalid query", single_rate_response_model)
-    @api.response(404, "Not found", single_rate_response_model)
+    @api.response(200, "Success", all_banks_currency_response_model)
+    @api.response(400, "Invalid query", error_response_model)
+    @api.response(404, "Not found", error_response_model)
     def get(self):
         bank = request.args.get("bank")
         currency = request.args.get("currency") or request.args.get("ccy")
         target_date = request.args.get("date")
-        cache_key = f"v1_{bank}_{currency or 'all'}_{target_date or 'latest'}"
+        cache_key = f"v1_{bank or 'allbanks'}_{currency or 'all'}_{target_date or 'latest'}"
         return get_cached_bank_rates(cache_key, single_rate_endpoint)
 
 
