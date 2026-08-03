@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T13:39:29.047292Z",
+  "generated_at": "2026-08-03T14:40:51.186864Z",
   "banks": [
     {
       "name": "Awash Bank",
@@ -22,7 +22,28 @@
       "source": "https://www.bankofabyssinia.com/exchange-rate",
       "status": "live",
       "date": "2026-08-03",
-      "rates": [],
+      "rates": [
+        {
+          "currency": "USD",
+          "buy": 160.3082,
+          "sell": 163.5144
+        },
+        {
+          "currency": "EUR",
+          "buy": 187.2057,
+          "sell": 190.9498
+        },
+        {
+          "currency": "GBP",
+          "buy": 213.2454,
+          "sell": 217.5103
+        },
+        {
+          "currency": "AED",
+          "buy": 44.7062,
+          "sell": 45.6003
+        }
+      ],
       "color": "#1a6b3c",
       "bg": "#0d3d21",
       "text": "#4ade80"

@@ -52,7 +52,11 @@ TRACKING_EXCLUDED_PATHS = {"/request-stats"}
 BANKS_CATALOG_FILE = Path(__file__).resolve().parent / "banks" / "catalog.json"
 HOMEPAGE_CACHE_FILE = Path(__file__).resolve().parent / "temp" / "homepage_banks_cache.json"
 HOMEPAGE_CACHE_LOCK = Lock()
-HOMEPAGE_CACHE_TTL_SECONDS = 300
+HOMEPAGE_CACHE_TTL_SECONDS = 4 * 60 * 60  # 4 hours
+
+RATES_CACHE_DIR = Path(__file__).resolve().parent / "temp" / "rates_cache"
+RATES_CACHE_LOCK = Lock()
+RATES_CACHE_TTL_SECONDS = 4 * 60 * 60  # 4 hours
 
 DATE_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -538,6 +542,64 @@ def get_homepage_banks_data_cached(max_age_seconds=HOMEPAGE_CACHE_TTL_SECONDS):
         return banks_data
 
 
+def _rates_cache_path(cache_key):
+    return RATES_CACHE_DIR / f"{cache_key}.json"
+
+
+def _read_rates_cache_payload(cache_key):
+    cache_file = _rates_cache_path(cache_key)
+    if not cache_file.exists():
+        return None
+
+    try:
+        with cache_file.open("r", encoding="utf-8") as fp:
+            payload = json.load(fp)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def _write_rates_cache_payload(cache_key, data):
+    cache_file = _rates_cache_path(cache_key)
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "data": data,
+    }
+    with cache_file.open("w", encoding="utf-8") as fp:
+        json.dump(payload, fp, indent=2)
+
+
+def get_cached_bank_rates(cache_key, fetcher, max_age_seconds=RATES_CACHE_TTL_SECONDS, *args, **kwargs):
+    """Fetch bank rates through a disk cache to avoid hammering scrapers.
+
+    Returns cached data when fresh; otherwise calls the fetcher, stores the
+    result, and returns it. Only successful payloads are cached.
+    """
+    with RATES_CACHE_LOCK:
+        payload = _read_rates_cache_payload(cache_key)
+        if payload and _is_homepage_cache_fresh(payload.get("generated_at"), max_age_seconds):
+            return payload["data"]
+
+        result = fetcher(*args, **kwargs)
+
+        if isinstance(result, tuple):
+            cached_payload, status = result
+            if not isinstance(status, int) or status >= 400:
+                return result
+            _write_rates_cache_payload(cache_key, cached_payload)
+            return result
+
+        if isinstance(result, dict) and result.get("error"):
+            return result
+
+        _write_rates_cache_payload(cache_key, result)
+        return result
+
+
 def _resolve_bank_metadata(bank_value):
     if not bank_value:
         return None
@@ -812,7 +874,11 @@ class SingleRateLookupResource(Resource):
     @api.response(400, "Invalid query", single_rate_response_model)
     @api.response(404, "Not found", single_rate_response_model)
     def get(self):
-        return single_rate_endpoint()
+        bank = request.args.get("bank")
+        currency = request.args.get("currency") or request.args.get("ccy")
+        target_date = request.args.get("date")
+        cache_key = f"v1_{bank}_{currency or 'all'}_{target_date or 'latest'}"
+        return get_cached_bank_rates(cache_key, single_rate_endpoint)
 
 
 @api.route("/api/v1/rates/<string:bank>")
@@ -827,7 +893,9 @@ class BankRatesLookupResource(Resource):
         ),
     )
     def get(self, bank):
-        return bank_rates_endpoint(bank)
+        target_date = request.args.get("date")
+        cache_key = f"v1_{bank}_all_{target_date or 'latest'}"
+        return get_cached_bank_rates(cache_key, bank_rates_endpoint, bank)
 
 
 @api.route("/api/v1/rates/<string:bank>/<string:currency>")
@@ -845,7 +913,9 @@ class BankCurrencyRateLookupResource(Resource):
     @api.response(400, "Invalid query", single_rate_response_model)
     @api.response(404, "Not found", single_rate_response_model)
     def get(self, bank, currency):
-        return bank_currency_rate_endpoint(bank, currency)
+        target_date = request.args.get("date")
+        cache_key = f"v1_{bank}_{currency}_{target_date or 'latest'}"
+        return get_cached_bank_rates(cache_key, bank_currency_rate_endpoint, bank, currency)
 
 
 @api.route("/dashen-exchange-rates")
@@ -861,7 +931,7 @@ class DashenExchangeRatesResource(Resource):
     )
     @api.response(200, "Success", exchange_rates_response_model)
     def get(self):
-        return get_dashen_exchange_rates()
+        return get_cached_bank_rates("dashen", get_dashen_exchange_rates)
 
 
 @api.route("/boa-exchange-rates")
@@ -877,7 +947,7 @@ class BoaExchangeRatesResource(Resource):
     )
     @api.response(200, "Success", exchange_rates_response_model)
     def get(self):
-        return get_boa_exchange_rates()
+        return get_cached_bank_rates("boa", get_boa_exchange_rates)
 
 
 @api.route("/cbe-exchange-rates")
@@ -906,7 +976,8 @@ class CbeExchangeRatesResource(Resource):
         date_param = _read_date_param()
         if isinstance(date_param, tuple):
             return date_param
-        return get_cbe_exchange_rates(date_param)
+        cache_key = f"cbe_{date_param or 'latest'}"
+        return get_cached_bank_rates(cache_key, get_cbe_exchange_rates, date_param)
 
 
 @api.route("/coop-exchange-rates")
@@ -922,7 +993,7 @@ class CoopExchangeRatesResource(Resource):
     )
     @api.response(200, "Success", exchange_rates_response_model)
     def get(self):
-        return get_coop_exchange_rates()
+        return get_cached_bank_rates("coop", get_coop_exchange_rates)
 
 
 @api.route("/hibret-exchange-rates")
@@ -944,7 +1015,7 @@ class HibretExchangeRatesResource(Resource):
     @api.response(200, "Success", exchange_rates_response_model)
     @api.response(500, "Upstream failure", error_response_model)
     def get(self):
-        return get_hibret_exchange_rates()
+        return get_cached_bank_rates("hibret", get_hibret_exchange_rates)
 
 
 @api.route("/wegagen-exchange-rates")
@@ -966,7 +1037,7 @@ class WegagenExchangeRatesResource(Resource):
     @api.response(200, "Success", exchange_rates_response_model)
     @api.response(500, "Upstream failure", error_response_model)
     def get(self):
-        return get_wegagen_exchange_rates()
+        return get_cached_bank_rates("wegagen", get_wegagen_exchange_rates)
 
 
 @api.route("/awash-exchange-rates")
@@ -999,7 +1070,8 @@ class AwashExchangeRatesResource(Resource):
         date_param = _read_date_param()
         if isinstance(date_param, tuple):
             return date_param
-        return get_awash_exchange_rates(date_param)
+        cache_key = f"awash_{date_param or 'latest'}"
+        return get_cached_bank_rates(cache_key, get_awash_exchange_rates, date_param)
 
 
 @api.route("/nib-exchange-rates")
@@ -1021,7 +1093,7 @@ class NibExchangeRatesResource(Resource):
     @api.response(200, "Success", exchange_rates_response_model)
     @api.response(500, "Upstream failure", error_response_model)
     def get(self):
-        return get_nib_exchange_rates()
+        return get_cached_bank_rates("nib", get_nib_exchange_rates)
 
 
 @app.route("/openapi.json", methods=["GET"])

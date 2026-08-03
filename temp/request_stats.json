@@ -1,6 +1,6 @@
 {
-  "total_requests": 191,
-  "updated_at": "2026-08-03T13:40:20.317690Z",
+  "total_requests": 198,
+  "updated_at": "2026-08-03T14:47:19.566185Z",
   "by_path": {
     "/apidocs": 22,
     "/swaggerui/droid-sans.css": 13,
@@ -11,14 +11,14 @@
     "/swaggerui/favicon-32x32.png": 11,
     "/cbe-exchange-rates": 2,
     "/boa-exchange-rates": 1,
-    "/favicon.ico": 12,
+    "/favicon.ico": 13,
     "/openapi.json": 3,
-    "/": 38,
+    "/": 41,
     "/.well-known/appspecific/com.chrome.devtools.json": 4,
     "/api/v1/rates": 5,
     "/api/v1/banks": 5,
     "/api/v1/rates/cbe/USD": 1,
-    "/home/rates-fragment": 14,
+    "/home/rates-fragment": 17,
     "/api/v1/rates/cbe": 1
   }
 }
